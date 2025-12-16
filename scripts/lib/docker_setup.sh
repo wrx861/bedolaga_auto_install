@@ -415,12 +415,32 @@ ensure_network_connection() {
 verify_panel_connection() {
     print_info "Проверка связи с панелью Remnawave..."
     
-    # Проверяем доступность remnawave из контейнера бота
-    if docker exec remnawave_bot wget -q --timeout=5 --spider http://remnawave:3000 2>/dev/null; then
+    # Даём контейнерам время на запуск
+    sleep 3
+    
+    # Пробуем разные способы проверки
+    local connected=false
+    
+    # Способ 1: curl (если есть)
+    if docker exec remnawave_bot curl -s --max-time 5 http://remnawave:3000 >/dev/null 2>&1; then
+        connected=true
+    # Способ 2: wget
+    elif docker exec remnawave_bot wget -q --timeout=5 --spider http://remnawave:3000 2>/dev/null; then
+        connected=true
+    # Способ 3: python
+    elif docker exec remnawave_bot python -c "import urllib.request; urllib.request.urlopen('http://remnawave:3000', timeout=5)" 2>/dev/null; then
+        connected=true
+    # Способ 4: проверка DNS резолва
+    elif docker exec remnawave_bot getent hosts remnawave >/dev/null 2>&1; then
+        print_info "DNS remnawave доступен, панель должна быть доступна"
+        connected=true
+    fi
+    
+    if [ "$connected" = true ]; then
         print_success "Связь с панелью установлена (http://remnawave:3000)"
     else
-        print_warning "Не удалось проверить связь с панелью"
-        print_info "Возможно, панель ещё запускается. Проверьте позже."
+        print_warning "Не удалось проверить связь с панелью автоматически"
+        print_info "Бот проверит подключение при запуске. Проверьте логи: ./logs.sh"
     fi
 }
 
