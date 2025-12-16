@@ -50,6 +50,7 @@ print_menu() {
     echo -e "  ${CYAN}6)${NC} Настроить webhook"
     echo -e "  ${CYAN}7)${NC} Показать текущую конфигурацию"
     echo -e "  ${CYAN}8)${NC} Перезапустить бота"
+    echo -e "  ${CYAN}9)${NC} Подключить SSL сертификаты к nginx панели"
     echo -e "  ${CYAN}0)${NC} Выход"
     echo
 }
@@ -241,6 +242,106 @@ restart_bot() {
     docker compose ps
 }
 
+apply_ssl_certificates() {
+    echo -e "${CYAN}🔒 Подключение SSL сертификатов к nginx панели${NC}"
+    echo
+    
+    # Находим директорию панели
+    local panel_dir=""
+    if [ -d "/opt/remnawave" ]; then
+        panel_dir="/opt/remnawave"
+    elif [ -d "/root/remnawave" ]; then
+        panel_dir="/root/remnawave"
+    else
+        echo -e "${RED}❌ Директория панели Remnawave не найдена${NC}"
+        echo -e "${YELLOW}Эта функция работает только если панель установлена на этом сервере${NC}"
+        return 1
+    fi
+    
+    local panel_compose="$panel_dir/docker-compose.yml"
+    
+    if [ ! -f "$panel_compose" ]; then
+        echo -e "${RED}❌ docker-compose.yml панели не найден: $panel_compose${NC}"
+        return 1
+    fi
+    
+    # Показываем доступные сертификаты
+    echo -e "${WHITE}Доступные SSL сертификаты:${NC}"
+    if [ -d "/etc/letsencrypt/live" ]; then
+        ls -1 /etc/letsencrypt/live/ 2>/dev/null | grep -v "README" | while read domain; do
+            echo -e "  ${GREEN}✓${NC} $domain"
+        done
+    else
+        echo -e "${YELLOW}  Сертификаты не найдены в /etc/letsencrypt/live/${NC}"
+        echo
+        echo -e "${WHITE}Для получения сертификата выполните:${NC}"
+        echo -e "${CYAN}  docker stop remnawave-nginx${NC}"
+        echo -e "${CYAN}  certbot certonly --standalone -d yourdomain.com${NC}"
+        echo -e "${CYAN}  docker start remnawave-nginx${NC}"
+        return 1
+    fi
+    echo
+    
+    read -p "Введите домен для подключения (или Enter для всех): " DOMAIN
+    
+    # Создаём бэкап
+    cp "$panel_compose" "$panel_compose.backup.$(date +%Y%m%d_%H%M%S)"
+    
+    # Проверяем, не смонтирована ли уже папка /etc/letsencrypt
+    if grep -q "/etc/letsencrypt:/etc/letsencrypt" "$panel_compose"; then
+        echo -e "${GREEN}✅ Папка /etc/letsencrypt уже смонтирована в docker-compose панели${NC}"
+    else
+        echo -e "${CYAN}Добавляем монтирование /etc/letsencrypt в docker-compose панели...${NC}"
+        
+        # Ищем последнюю строку с .pem:ro или volumes в секции remnawave-nginx
+        local last_pem_line=$(grep -n "\.pem:ro" "$panel_compose" | tail -1 | cut -d: -f1)
+        
+        if [ -z "$last_pem_line" ]; then
+            # Пробуем найти volumes в remnawave-nginx
+            local nginx_start=$(grep -n "remnawave-nginx:" "$panel_compose" | head -1 | cut -d: -f1)
+            local network_line=$(tail -n +${nginx_start:-1} "$panel_compose" | grep -n "network_mode:" | head -1 | cut -d: -f1)
+            
+            if [ -n "$nginx_start" ] && [ -n "$network_line" ]; then
+                last_pem_line=$((nginx_start + network_line - 2))
+            else
+                echo -e "${RED}❌ Не удалось найти место для вставки в docker-compose.yml${NC}"
+                return 1
+            fi
+        fi
+        
+        # Добавляем монтирование
+        local new_line="      - /etc/letsencrypt:/etc/letsencrypt:ro"
+        head -n "$last_pem_line" "$panel_compose" > "$panel_compose.tmp"
+        echo "$new_line" >> "$panel_compose.tmp"
+        tail -n +$((last_pem_line + 1)) "$panel_compose" >> "$panel_compose.tmp"
+        mv "$panel_compose.tmp" "$panel_compose"
+        
+        if grep -q "/etc/letsencrypt:/etc/letsencrypt" "$panel_compose"; then
+            echo -e "${GREEN}✅ Монтирование добавлено${NC}"
+        else
+            echo -e "${RED}❌ Не удалось добавить монтирование${NC}"
+            return 1
+        fi
+    fi
+    
+    # Перезапускаем nginx с пересозданием контейнера
+    echo -e "${CYAN}Перезапуск nginx панели...${NC}"
+    cd "$panel_dir"
+    docker compose up -d --force-recreate remnawave-nginx 2>/dev/null || \
+    docker compose restart remnawave-nginx 2>/dev/null || \
+    docker restart remnawave-nginx 2>/dev/null
+    
+    sleep 3
+    
+    # Проверяем доступность
+    local check_domain="${DOMAIN:-$(ls -1 /etc/letsencrypt/live/ 2>/dev/null | grep -v README | head -1)}"
+    if [ -n "$check_domain" ] && docker exec remnawave-nginx test -f "/etc/letsencrypt/live/$check_domain/fullchain.pem" 2>/dev/null; then
+        echo -e "${GREEN}✅ SSL сертификаты успешно подключены к nginx панели!${NC}"
+    else
+        echo -e "${YELLOW}⚠️ Проверьте логи: docker logs remnawave-nginx${NC}"
+    fi
+}
+
 # Проверка установки
 if [ ! -f "$ENV_FILE" ]; then
     echo -e "${RED}❌ Файл .env не найден в $INSTALL_DIR${NC}"
@@ -262,6 +363,7 @@ while true; do
         6) edit_webhook ;;
         7) show_config ;;
         8) restart_bot ;;
+        9) apply_ssl_certificates ;;
         0) 
             echo -e "${GREEN}До свидания!${NC}"
             exit 0
