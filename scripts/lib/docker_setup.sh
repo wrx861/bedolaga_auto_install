@@ -39,44 +39,80 @@ create_directories() {
 
 # Проверка существующего volume PostgreSQL
 check_postgres_volume() {
+    # Ищем ВСЕ postgres volumes связанные с ботом
+    local found_volumes=$(docker volume ls -q 2>/dev/null | grep -E "(postgres|bot)" | grep -v "remnawave_postgres" || true)
+    
+    # Также проверяем по известным именам
     local project_name=$(basename "$INSTALL_DIR" | tr '[:upper:]' '[:lower:]' | tr -dc 'a-z0-9')
-    local possible_volumes=(
+    local known_volumes=(
         "${project_name}_postgres_data"
         "remnawave-bedolaga-telegram-bot_postgres_data"
         "remnawavebedolagatelegrambot_postgres_data"
+        "remnawave_bot_postgres_data"
     )
     
-    for vol in "${possible_volumes[@]}"; do
+    for vol in "${known_volumes[@]}"; do
         if docker volume inspect "$vol" &>/dev/null; then
-            echo
-            print_warning "⚠️  Обнаружен существующий Docker volume: $vol"
-            echo -e "${YELLOW}   Это может вызвать ошибку аутентификации PostgreSQL,${NC}"
-            echo -e "${YELLOW}   если пароль в базе отличается от нового.${NC}"
-            echo
-            echo -e "${WHITE}   Варианты:${NC}"
-            echo -e "${CYAN}   1)${NC} Удалить старый volume (БАЗА ДАННЫХ БУДЕТ УТЕРЯНА!)"
-            echo -e "${CYAN}   2)${NC} Продолжить без изменений"
-            echo
-            read -p "   Выберите (1/2): " vol_choice < /dev/tty
-            
-            case $vol_choice in
-                1)
-                    print_warning "Удаление volume $vol..."
-                    docker volume rm "$vol" 2>/dev/null || true
-                    print_success "Volume удалён."
-                    ;;
-                2)
-                    print_info "Продолжаем со старым volume."
-                    print_warning "Если возникнет ошибка пароля, удалите volume вручную:"
-                    echo -e "${CYAN}   docker volume rm $vol${NC}"
-                    ;;
-                *)
-                    print_info "Продолжаем без изменений"
-                    ;;
-            esac
-            return
+            found_volumes="$found_volumes $vol"
         fi
     done
+    
+    # Убираем дубликаты
+    found_volumes=$(echo "$found_volumes" | tr ' ' '\n' | sort -u | grep -v "^$" || true)
+    
+    if [ -z "$found_volumes" ]; then
+        print_info "Существующих postgres volumes не найдено"
+        return 0
+    fi
+    
+    echo
+    print_warning "⚠️  Обнаружены существующие Docker volumes для PostgreSQL:"
+    echo "$found_volumes" | while read vol; do
+        [ -n "$vol" ] && echo -e "${CYAN}   - $vol${NC}"
+    done
+    echo
+    echo -e "${YELLOW}   Это может вызвать ошибку аутентификации PostgreSQL,${NC}"
+    echo -e "${YELLOW}   если пароль в базе отличается от нового.${NC}"
+    echo
+    echo -e "${WHITE}   Варианты:${NC}"
+    echo -e "${CYAN}   1)${NC} Удалить ВСЕ старые volumes (БАЗА ДАННЫХ БУДЕТ УТЕРЯНА!)"
+    echo -e "${CYAN}   2)${NC} Продолжить без изменений"
+    echo
+    read -p "   Выберите (1/2): " vol_choice < /dev/tty
+    
+    case $vol_choice in
+        1)
+            print_warning "Удаление volumes..."
+            
+            # Используем down -v для гарантированного удаления volumes
+            cd "$INSTALL_DIR" 2>/dev/null || true
+            docker compose -f docker-compose.local.yml down -v 2>/dev/null || true
+            docker compose down -v 2>/dev/null || true
+            
+            # Дополнительно удаляем volumes по имени
+            echo "$found_volumes" | while read vol; do
+                if [ -n "$vol" ]; then
+                    print_info "Удаляем: $vol"
+                    docker volume rm "$vol" 2>/dev/null || true
+                fi
+            done
+            
+            # Ещё раз по известным паттернам
+            docker volume ls -q 2>/dev/null | grep -E "postgres.*bot|bot.*postgres" | xargs -r docker volume rm 2>/dev/null || true
+            
+            print_success "Volumes удалены. Будет создана новая база с текущим паролем."
+            ;;
+        2)
+            print_info "Продолжаем со старыми volumes."
+            print_warning "Если возникнет ошибка пароля, выполните:"
+            echo -e "${CYAN}   cd $INSTALL_DIR${NC}"
+            echo -e "${CYAN}   docker compose -f docker-compose.local.yml down -v${NC}"
+            echo -e "${CYAN}   docker compose -f docker-compose.local.yml up -d${NC}"
+            ;;
+        *)
+            print_info "Продолжаем без изменений"
+            ;;
+    esac
 }
 
 # Создание стандартного docker-compose.yml для отдельной установки
@@ -283,12 +319,13 @@ start_docker() {
     
     cd "$INSTALL_DIR"
     
-    # Проверяем существующий volume PostgreSQL
-    check_postgres_volume
-    
-    # Остановка существующих контейнеров
+    # Сначала останавливаем существующие контейнеры
+    print_info "Остановка существующих контейнеров..."
     docker compose down 2>/dev/null || true
     docker compose -f docker-compose.local.yml down 2>/dev/null || true
+    
+    # Потом проверяем volume (после остановки контейнеров!)
+    check_postgres_volume
     
     # Выбор docker-compose файла
     COMPOSE_FILE="docker-compose.yml"
