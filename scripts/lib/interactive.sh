@@ -312,28 +312,40 @@ interactive_setup() {
     fi
     
     # Проверка на eGames SECRET_KEY
-    echo -e "\n${CYAN}6. Панель установлена через скрипт eGames?${NC}"
-    echo -e "${YELLOW}   eGames добавляет защиту доступа к панели через параметр в URL${NC}"
-    echo
+    # SECRET_KEY нужен ТОЛЬКО при обращении к панели через ВНЕШНИЙ URL (https://)
+    # При локальном подключении (http://remnawave:3000) SECRET_KEY вызовет ошибку!
     
-    read -p "   Используете панель, установленную скриптом eGames? [y/N]: " use_egames_input < /dev/tty
-    if [[ "${use_egames_input,,}" == "y" ]]; then
-        USE_EGAMES="true"
-        echo -e "\n${CYAN}   Введите секретный ключ в формате XXXXXXX:DDDDDDDD${NC}"
-        echo -e "${WHITE}   Это параметр из URL доступа к панели.${NC}"
-        echo
-        echo -e "${YELLOW}   Пример URL: https://panel.example.com/auth/login?MHPsUKCz:VfHqrBwp${NC}"
-        echo -e "${YELLOW}   SECRET_KEY: MHPsUKCz:VfHqrBwp${NC}"
-        echo
-        read -p "   REMNAWAVE_SECRET_KEY: " REMNAWAVE_SECRET_KEY < /dev/tty
-        if [ -n "$REMNAWAVE_SECRET_KEY" ]; then
-            print_success "eGames SECRET_KEY сохранён"
-        else
-            print_warning "SECRET_KEY не указан"
-        fi
-    else
+    if [[ "$REMNAWAVE_API_URL" == http://remnawave:* ]] || [[ "$REMNAWAVE_API_URL" == http://localhost:* ]] || [[ "$REMNAWAVE_API_URL" == http://127.0.0.1:* ]]; then
+        # Локальное подключение - SECRET_KEY НЕ НУЖЕН
         USE_EGAMES="false"
         REMNAWAVE_SECRET_KEY=""
+        print_info "Локальное подключение к панели - SECRET_KEY не требуется"
+    else
+        # Внешнее подключение - спрашиваем про eGames
+        echo -e "\n${CYAN}6. Панель установлена через скрипт eGames?${NC}"
+        echo -e "${YELLOW}   eGames добавляет защиту доступа к панели через параметр в URL${NC}"
+        echo -e "${YELLOW}   (SECRET_KEY нужен только при подключении через внешний URL)${NC}"
+        echo
+        
+        read -p "   Используете панель, установленную скриптом eGames? [y/N]: " use_egames_input < /dev/tty
+        if [[ "${use_egames_input,,}" == "y" ]]; then
+            USE_EGAMES="true"
+            echo -e "\n${CYAN}   Введите секретный ключ в формате XXXXXXX=DDDDDDDD${NC}"
+            echo -e "${WHITE}   Это параметр из URL доступа к панели.${NC}"
+            echo
+            echo -e "${YELLOW}   Пример URL: https://panel.example.com/auth/login?MHPsUKCz=VfHqrBwp${NC}"
+            echo -e "${YELLOW}   SECRET_KEY: MHPsUKCz=VfHqrBwp${NC}"
+            echo
+            read -p "   REMNAWAVE_SECRET_KEY: " REMNAWAVE_SECRET_KEY < /dev/tty
+            if [ -n "$REMNAWAVE_SECRET_KEY" ]; then
+                print_success "eGames SECRET_KEY сохранён"
+            else
+                print_warning "SECRET_KEY не указан"
+            fi
+        else
+            USE_EGAMES="false"
+            REMNAWAVE_SECRET_KEY=""
+        fi
     fi
     
     # Домен для webhook
