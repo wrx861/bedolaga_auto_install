@@ -96,6 +96,7 @@ edit_remnawave() {
     echo -e "${CYAN}Текущие настройки Remnawave:${NC}"
     echo -e "  API_URL: $(get_env_value REMNAWAVE_API_URL)"
     echo -e "  API_KEY: $(get_env_value REMNAWAVE_API_KEY | head -c 20)..."
+    echo -e "  SECRET_KEY (eGames): $(get_env_value REMNAWAVE_SECRET_KEY)"
     echo
     
     read -p "Новый REMNAWAVE_API_URL (Enter для пропуска): " NEW_URL
@@ -108,6 +109,19 @@ edit_remnawave() {
     if [ -n "$NEW_KEY" ]; then
         set_env_value "REMNAWAVE_API_KEY" "$NEW_KEY"
         echo -e "${GREEN}✅ REMNAWAVE_API_KEY обновлен${NC}"
+    fi
+    
+    echo
+    echo -e "${YELLOW}REMNAWAVE_SECRET_KEY нужен ТОЛЬКО для панелей установленных через eGames${NC}"
+    echo -e "${YELLOW}и ТОЛЬКО если бот на ДРУГОМ сервере от панели.${NC}"
+    echo -e "${WHITE}Формат: параметр из URL панели (например MHPsUKCz=VfHqrBwp)${NC}"
+    read -p "Новый REMNAWAVE_SECRET_KEY (Enter для пропуска, 'delete' для удаления): " NEW_SECRET
+    if [ "$NEW_SECRET" == "delete" ]; then
+        sed -i '/^REMNAWAVE_SECRET_KEY=/d' "$ENV_FILE"
+        echo -e "${GREEN}✅ REMNAWAVE_SECRET_KEY удален${NC}"
+    elif [ -n "$NEW_SECRET" ]; then
+        set_env_value "REMNAWAVE_SECRET_KEY" "$NEW_SECRET"
+        echo -e "${GREEN}✅ REMNAWAVE_SECRET_KEY обновлен${NC}"
     fi
 }
 
@@ -220,6 +234,12 @@ show_config() {
     echo -e "${WHITE}Remnawave:${NC}"
     echo -e "  API_URL: $(get_env_value REMNAWAVE_API_URL)"
     echo -e "  API_KEY: $(get_env_value REMNAWAVE_API_KEY | head -c 20)..."
+    local secret_key=$(get_env_value REMNAWAVE_SECRET_KEY)
+    if [ -n "$secret_key" ]; then
+        echo -e "  SECRET_KEY (eGames): ${YELLOW}установлен${NC}"
+    else
+        echo -e "  SECRET_KEY (eGames): не установлен"
+    fi
     echo
     echo -e "${WHITE}Режим работы:${NC}"
     echo -e "  BOT_RUN_MODE: $(get_env_value BOT_RUN_MODE)"
