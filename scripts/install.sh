@@ -33,14 +33,29 @@ if [ ! -d "$SCRIPT_DIR/lib" ]; then
     exit 1
 fi
 
-# Подключаем модули
-source "$SCRIPT_DIR/lib/utils.sh"
-source "$SCRIPT_DIR/lib/packages.sh"
-source "$SCRIPT_DIR/lib/interactive.sh"
-source "$SCRIPT_DIR/lib/docker_setup.sh"
-source "$SCRIPT_DIR/lib/env_config.sh"
-source "$SCRIPT_DIR/lib/nginx_setup.sh"
-source "$SCRIPT_DIR/lib/final.sh"
+# Список модулей
+MODULES=(
+    "utils.sh"
+    "packages.sh"
+    "interactive.sh"
+    "docker_setup.sh"
+    "env_config.sh"
+    "nginx_setup.sh"
+    "final.sh"
+)
+
+# Подключаем модули с проверкой
+for module in "${MODULES[@]}"; do
+    if [ ! -f "$SCRIPT_DIR/lib/$module" ]; then
+        echo "❌ Модуль не найден: $SCRIPT_DIR/lib/$module"
+        echo "   Убедитесь что все файлы скачаны."
+        exit 1
+    fi
+    source "$SCRIPT_DIR/lib/$module" || {
+        echo "❌ Ошибка загрузки модуля: $module"
+        exit 1
+    }
+done
 
 # ===============================================
 # ГЛАВНАЯ ФУНКЦИЯ
