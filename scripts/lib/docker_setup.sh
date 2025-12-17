@@ -39,12 +39,8 @@ create_directories() {
 
 # Проверка существующего volume PostgreSQL
 check_postgres_volume() {
-    # ВАЖНО: Сначала сохраняем старый .env если существует
-    if [ -f "$INSTALL_DIR/.env" ]; then
-        cp "$INSTALL_DIR/.env" "/tmp/bedolaga_old_env_backup_$$"
-        export OLD_ENV_BACKUP="/tmp/bedolaga_old_env_backup_$$"
-        print_info "Сохранён бэкап существующего .env"
-    fi
+    # Сбрасываем флаг
+    export KEEP_EXISTING_VOLUMES="false"
     
     # Ищем ВСЕ postgres volumes связанные с ботом
     local found_volumes=$(docker volume ls -q 2>/dev/null | grep -E "(postgres|bot)" | grep -v "remnawave_postgres" || true)
@@ -68,27 +64,25 @@ check_postgres_volume() {
     found_volumes=$(echo "$found_volumes" | tr ' ' '\n' | sort -u | grep -v "^$" || true)
     
     if [ -z "$found_volumes" ]; then
-        print_info "Существующих postgres volumes не найдено"
+        print_info "Существующих postgres volumes не найдено — будет создана новая БД"
         return 0
     fi
     
     echo
-    print_warning "⚠️  Обнаружены существующие Docker volumes для PostgreSQL:"
+    print_warning "⚠️  Обнаружены существующие Docker volumes PostgreSQL:"
     echo "$found_volumes" | while read vol; do
         [ -n "$vol" ] && echo -e "${CYAN}   - $vol${NC}"
     done
     echo
-    echo -e "${YELLOW}   Это может вызвать ошибку аутентификации PostgreSQL,${NC}"
-    echo -e "${YELLOW}   если пароль в базе отличается от нового.${NC}"
-    echo
     echo -e "${WHITE}   Варианты:${NC}"
-    echo -e "${CYAN}   1)${NC} Удалить ВСЕ старые volumes (БАЗА ДАННЫХ БУДЕТ УТЕРЯНА!)"
-    echo -e "${CYAN}   2)${NC} Продолжить без изменений"
+    echo -e "${CYAN}   1)${NC} Сохранить данные (рекомендуется) — пароль PostgreSQL будет взят из существующей БД"
+    echo -e "${CYAN}   2)${NC} Удалить volumes и начать с чистой БД — можно задать новый пароль"
     echo
-    read -p "   Выберите (1/2): " vol_choice < /dev/tty
+    read -p "   Выберите (1/2) [1]: " vol_choice < /dev/tty
+    vol_choice=${vol_choice:-1}
     
     case $vol_choice in
-        1)
+        2)
             print_warning "Удаление volumes..."
             
             # Используем down -v для гарантированного удаления volumes
@@ -107,18 +101,12 @@ check_postgres_volume() {
             # Ещё раз по известным паттернам
             docker volume ls -q 2>/dev/null | grep -E "postgres.*bot|bot.*postgres" | xargs -r docker volume rm 2>/dev/null || true
             
-            print_success "Volumes удалены. Будет создана новая база с текущим паролем."
-            ;;
-        2)
-            print_info "Продолжаем со старыми volumes."
-            echo
-            # Устанавливаем флаг - НЕ ПЕРЕЗАПИСЫВАТЬ старый .env
-            export KEEP_OLD_ENV="true"
-            print_success "Существующий .env будет сохранён (с настройками БД)"
+            print_success "Volumes удалены. Будет создана новая база с новым паролем."
+            # Флаг остаётся false — будет спрошен новый пароль
             ;;
         *)
-            print_info "Продолжаем без изменений"
-            export KEEP_OLD_ENV="true"
+            print_success "Данные сохранены. Пароль PostgreSQL будет закомментирован в .env"
+            export KEEP_EXISTING_VOLUMES="true"
             ;;
     esac
 }
@@ -338,8 +326,7 @@ start_docker() {
     docker compose down 2>/dev/null || true
     docker compose -f docker-compose.local.yml down 2>/dev/null || true
     
-    # Потом проверяем volume (после остановки контейнеров!)
-    check_postgres_volume
+    # check_postgres_volume уже вызван в main() до interactive_setup
     
     # Выбор docker-compose файла
     COMPOSE_FILE="docker-compose.yml"
