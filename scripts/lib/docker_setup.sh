@@ -104,13 +104,16 @@ check_postgres_volume() {
             ;;
         2)
             print_info "Продолжаем со старыми volumes."
-            print_warning "Если возникнет ошибка пароля, выполните:"
-            echo -e "${CYAN}   cd $INSTALL_DIR${NC}"
-            echo -e "${CYAN}   docker compose -f docker-compose.local.yml down -v${NC}"
-            echo -e "${CYAN}   docker compose -f docker-compose.local.yml up -d${NC}"
+            echo
+            print_warning "⚠️  ВАЖНО: При использовании существующей БД настройки PostgreSQL"
+            print_warning "   в .env будут закомментированы, чтобы использовались старые учётные данные."
+            echo
+            # Устанавливаем флаг для env_config.sh
+            export KEEP_OLD_POSTGRES_VOLUME="true"
             ;;
         *)
             print_info "Продолжаем без изменений"
+            export KEEP_OLD_POSTGRES_VOLUME="true"
             ;;
     esac
 }
