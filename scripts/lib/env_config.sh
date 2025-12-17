@@ -17,6 +17,12 @@ create_env_file() {
         ADMIN_NOTIFICATIONS_ENABLED="false"
     fi
     
+    # При переустановке с сохранением volumes — используем старый пароль из бэкапа
+    if [ "$KEEP_EXISTING_VOLUMES" = "true" ] && [ -n "$OLD_POSTGRES_PASSWORD" ]; then
+        POSTGRES_PASSWORD="$OLD_POSTGRES_PASSWORD"
+        print_info "Используется сохранённый пароль PostgreSQL"
+    fi
+    
     cat > .env << EOF
 # ===============================================
 # 🤖 REMNAWAVE BEDOLAGA BOT CONFIGURATION
@@ -47,23 +53,7 @@ POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
 POSTGRES_DB=remnawave_bot
 POSTGRES_USER=remnawave_user
-EOF
-
-    # POSTGRES_PASSWORD: пишем или комментируем в зависимости от наличия существующих volumes
-    if [ "$KEEP_EXISTING_VOLUMES" = "true" ]; then
-        # Переустановка — комментируем пароль, чтобы использовался существующий из БД
-        cat >> .env << EOF
-# POSTGRES_PASSWORD закомментирован — используется пароль из существующей БД
-# Раскомментируйте и укажите пароль только если знаете его
-# POSTGRES_PASSWORD=
-EOF
-        print_info "POSTGRES_PASSWORD закомментирован (используется существующий из БД)"
-    else
-        # Первая установка — пишем сгенерированный пароль
-        echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env
-    fi
-
-    cat >> .env << EOF
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
 # ===== REDIS =====
 REDIS_URL=redis://redis:6379/0
