@@ -105,15 +105,49 @@ check_postgres_volume() {
         2)
             print_info "Продолжаем со старыми volumes."
             echo
-            print_warning "⚠️  ВАЖНО: При использовании существующей БД настройки PostgreSQL"
-            print_warning "   в .env будут закомментированы, чтобы использовались старые учётные данные."
-            echo
-            # Устанавливаем флаг для env_config.sh
-            export KEEP_OLD_POSTGRES_VOLUME="true"
+            # Ищем старый .env с POSTGRES настройками
+            local old_env=""
+            if [ -f "$INSTALL_DIR/.env" ]; then
+                old_env="$INSTALL_DIR/.env"
+            elif [ -f "$INSTALL_DIR/.env.backup" ]; then
+                old_env="$INSTALL_DIR/.env.backup"
+            fi
+            
+            if [ -n "$old_env" ] && grep -q "POSTGRES_PASSWORD" "$old_env" 2>/dev/null; then
+                print_info "Найден старый .env с настройками PostgreSQL"
+                # Извлекаем старые настройки
+                export OLD_POSTGRES_HOST=$(grep "^POSTGRES_HOST=" "$old_env" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+                export OLD_POSTGRES_PORT=$(grep "^POSTGRES_PORT=" "$old_env" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+                export OLD_POSTGRES_DB=$(grep "^POSTGRES_DB=" "$old_env" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+                export OLD_POSTGRES_USER=$(grep "^POSTGRES_USER=" "$old_env" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+                export OLD_POSTGRES_PASSWORD=$(grep "^POSTGRES_PASSWORD=" "$old_env" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+                
+                if [ -n "$OLD_POSTGRES_PASSWORD" ]; then
+                    print_success "Настройки PostgreSQL будут скопированы из старого .env"
+                    export USE_OLD_POSTGRES_SETTINGS="true"
+                else
+                    print_warning "Не удалось извлечь POSTGRES_PASSWORD из старого .env"
+                    print_warning "Введите старый пароль PostgreSQL вручную:"
+                    read -s -p "   POSTGRES_PASSWORD: " OLD_POSTGRES_PASSWORD < /dev/tty
+                    echo
+                    if [ -n "$OLD_POSTGRES_PASSWORD" ]; then
+                        export USE_OLD_POSTGRES_SETTINGS="true"
+                    fi
+                fi
+            else
+                print_warning "Старый .env не найден или не содержит POSTGRES настройки"
+                print_warning "Введите старый пароль PostgreSQL вручную:"
+                read -s -p "   POSTGRES_PASSWORD: " OLD_POSTGRES_PASSWORD < /dev/tty
+                echo
+                if [ -n "$OLD_POSTGRES_PASSWORD" ]; then
+                    export OLD_POSTGRES_USER="${OLD_POSTGRES_USER:-postgres}"
+                    export OLD_POSTGRES_DB="${OLD_POSTGRES_DB:-remnawave_bot}"
+                    export USE_OLD_POSTGRES_SETTINGS="true"
+                fi
+            fi
             ;;
         *)
             print_info "Продолжаем без изменений"
-            export KEEP_OLD_POSTGRES_VOLUME="true"
             ;;
     esac
 }
