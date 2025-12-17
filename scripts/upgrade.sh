@@ -353,7 +353,21 @@ fi
 
 # Определяем compose файл
 COMPOSE_FILE="docker-compose.yml"
-[ -f "$INSTALL_DIR/docker-compose.local.yml" ] && COMPOSE_FILE="docker-compose.local.yml"
+if [ -f "$INSTALL_DIR/docker-compose.local.yml" ]; then
+    COMPOSE_FILE="docker-compose.local.yml"
+elif [ -f "$INSTALL_DIR/.install_config" ]; then
+    source "$INSTALL_DIR/.install_config" 2>/dev/null
+fi
+
+# Проверяем наличие external network в compose файле
+if grep -q "external: true" "$INSTALL_DIR/$COMPOSE_FILE" 2>/dev/null; then
+    NETWORK_NAME=$(grep -A1 "external: true" "$INSTALL_DIR/$COMPOSE_FILE" | grep "name:" | awk '{print $2}' || echo "remnawave-network")
+    if ! docker network ls --format '{{.Name}}' | grep -q "^${NETWORK_NAME}$"; then
+        echo -e "${YELLOW}⚠️  Обнаружена external network: $NETWORK_NAME${NC}"
+        echo -e "${YELLOW}   Сеть не найдена. Создаём...${NC}"
+        docker network create "$NETWORK_NAME" 2>/dev/null || true
+    fi
+fi
 
 echo -e "${PURPLE}"
 echo "╔══════════════════════════════════════════════════════════════╗"
