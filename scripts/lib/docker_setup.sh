@@ -39,8 +39,17 @@ create_directories() {
 
 # Проверка существующего volume PostgreSQL
 check_postgres_volume() {
-    # Сбрасываем флаг
+    # Сбрасываем флаги
     export KEEP_EXISTING_VOLUMES="false"
+    export OLD_POSTGRES_PASSWORD=""
+    
+    # ВАЖНО: Сохраняем пароль из существующего .env ДО git clone!
+    if [ -f "$INSTALL_DIR/.env" ]; then
+        OLD_POSTGRES_PASSWORD=$(grep "^POSTGRES_PASSWORD=" "$INSTALL_DIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        if [ -n "$OLD_POSTGRES_PASSWORD" ]; then
+            print_info "Сохранён пароль PostgreSQL из существующего .env"
+        fi
+    fi
     
     # Ищем ВСЕ postgres volumes связанные с ботом
     local found_volumes=$(docker volume ls -q 2>/dev/null | grep -E "(postgres|bot)" | grep -v "remnawave_postgres" || true)
@@ -105,7 +114,13 @@ check_postgres_volume() {
             # Флаг остаётся false — будет спрошен новый пароль
             ;;
         *)
-            print_success "Данные сохранены. Пароль PostgreSQL будет закомментирован в .env"
+            if [ -n "$OLD_POSTGRES_PASSWORD" ]; then
+                print_success "Данные сохранены. Пароль PostgreSQL будет восстановлен из старого .env"
+            else
+                print_warning "Данные сохранены, но старый пароль не найден!"
+                echo -e "${YELLOW}   Возможна ошибка аутентификации. Если это произойдёт:${NC}"
+                echo -e "${CYAN}   docker compose down -v && docker compose up -d${NC}"
+            fi
             export KEEP_EXISTING_VOLUMES="true"
             ;;
     esac
