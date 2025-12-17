@@ -209,12 +209,66 @@ do_backup() {
     check_install_dir
     local BACKUP_DIR="\$INSTALL_DIR/data/backups"
     local TIMESTAMP=\$(date +%Y%m%d_%H%M%S)
-    mkdir -p "\$BACKUP_DIR"
+    local BACKUP_NAME="backup_\$TIMESTAMP"
+    mkdir -p "\$BACKUP_DIR/\$BACKUP_NAME"
     
-    echo -e "\${CYAN}💾 Создание резервной копии...\${NC}"
-    docker compose -f "\$COMPOSE_FILE" exec -T postgres pg_dump -U remnawave_user remnawave_bot > "\$BACKUP_DIR/db_\$TIMESTAMP.sql" 2>/dev/null
-    cp .env "\$BACKUP_DIR/.env_\$TIMESTAMP"
-    echo -e "\${GREEN}✅ Бэкап создан: \$BACKUP_DIR\${NC}"
+    echo -e "\${CYAN}╔══════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${CYAN}║           💾 СОЗДАНИЕ РЕЗЕРВНОЙ КОПИИ 💾                     ║\${NC}"
+    echo -e "\${CYAN}╚══════════════════════════════════════════════════════════════╝\${NC}"
+    echo
+    
+    # 1. PostgreSQL
+    echo -e "\${WHITE}1/4 PostgreSQL...\${NC}"
+    if docker compose -f "\$COMPOSE_FILE" exec -T postgres pg_dump -U remnawave_user remnawave_bot > "\$BACKUP_DIR/\$BACKUP_NAME/database.sql" 2>/dev/null; then
+        local DB_SIZE=\$(du -h "\$BACKUP_DIR/\$BACKUP_NAME/database.sql" | cut -f1)
+        echo -e "    \${GREEN}✅ database.sql (\$DB_SIZE)\${NC}"
+    else
+        echo -e "    \${RED}❌ Ошибка бэкапа PostgreSQL\${NC}"
+    fi
+    
+    # 2. Redis
+    echo -e "\${WHITE}2/4 Redis...\${NC}"
+    if docker compose -f "\$COMPOSE_FILE" exec -T redis redis-cli BGSAVE >/dev/null 2>&1; then
+        sleep 2
+        docker compose -f "\$COMPOSE_FILE" exec -T redis cat /data/dump.rdb > "\$BACKUP_DIR/\$BACKUP_NAME/redis.rdb" 2>/dev/null
+        if [ -s "\$BACKUP_DIR/\$BACKUP_NAME/redis.rdb" ]; then
+            local REDIS_SIZE=\$(du -h "\$BACKUP_DIR/\$BACKUP_NAME/redis.rdb" | cut -f1)
+            echo -e "    \${GREEN}✅ redis.rdb (\$REDIS_SIZE)\${NC}"
+        else
+            echo -e "    \${YELLOW}⚠️  Redis пуст или недоступен\${NC}"
+            rm -f "\$BACKUP_DIR/\$BACKUP_NAME/redis.rdb"
+        fi
+    else
+        echo -e "    \${YELLOW}⚠️  Redis недоступен\${NC}"
+    fi
+    
+    # 3. Конфигурация
+    echo -e "\${WHITE}3/4 Конфигурация...\${NC}"
+    cp .env "\$BACKUP_DIR/\$BACKUP_NAME/.env" 2>/dev/null && echo -e "    \${GREEN}✅ .env\${NC}"
+    cp docker-compose*.yml "\$BACKUP_DIR/\$BACKUP_NAME/" 2>/dev/null && echo -e "    \${GREEN}✅ docker-compose.yml\${NC}"
+    
+    # 4. Данные (QR-коды и т.д.)
+    echo -e "\${WHITE}4/4 Данные...\${NC}"
+    if [ -d "data" ] && [ "\$(ls -A data 2>/dev/null)" ]; then
+        tar -czf "\$BACKUP_DIR/\$BACKUP_NAME/data.tar.gz" data 2>/dev/null
+        if [ -f "\$BACKUP_DIR/\$BACKUP_NAME/data.tar.gz" ]; then
+            local DATA_SIZE=\$(du -h "\$BACKUP_DIR/\$BACKUP_NAME/data.tar.gz" | cut -f1)
+            echo -e "    \${GREEN}✅ data.tar.gz (\$DATA_SIZE)\${NC}"
+        fi
+    else
+        echo -e "    \${YELLOW}⚠️  Папка data пуста\${NC}"
+    fi
+    
+    # Итог
+    echo
+    local TOTAL_SIZE=\$(du -sh "\$BACKUP_DIR/\$BACKUP_NAME" | cut -f1)
+    echo -e "\${GREEN}═══════════════════════════════════════════════════════════════\${NC}"
+    echo -e "\${GREEN}✅ Бэкап создан: \$BACKUP_DIR/\$BACKUP_NAME\${NC}"
+    echo -e "\${GREEN}   Размер: \$TOTAL_SIZE\${NC}"
+    echo -e "\${GREEN}═══════════════════════════════════════════════════════════════\${NC}"
+    
+    # Удаляем старые бэкапы (оставляем 5 последних)
+    ls -dt "\$BACKUP_DIR"/backup_* 2>/dev/null | tail -n +6 | xargs -r rm -rf
 }
 
 do_health() {
