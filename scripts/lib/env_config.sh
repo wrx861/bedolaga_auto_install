@@ -39,7 +39,26 @@ EOF
     fi
     
     # Продолжаем .env файл
-    cat >> .env << EOF
+    # Если используем существующую БД - комментируем POSTGRES настройки
+    if [ "$KEEP_OLD_POSTGRES_VOLUME" = "true" ]; then
+        cat >> .env << EOF
+
+# ===== DATABASE =====
+# ⚠️ POSTGRES настройки закомментированы, т.к. используется существующая БД
+# Раскомментируйте если нужно переопределить учётные данные
+DATABASE_MODE=auto
+#POSTGRES_HOST=postgres
+#POSTGRES_PORT=5432
+#POSTGRES_DB=remnawave_bot
+#POSTGRES_USER=remnawave_user
+#POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+# ===== REDIS =====
+REDIS_URL=redis://redis:6379/0
+EOF
+        print_warning "POSTGRES настройки закомментированы (используется существующая БД)"
+    else
+        cat >> .env << EOF
 
 # ===== DATABASE =====
 DATABASE_MODE=auto
@@ -51,6 +70,8 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
 # ===== REDIS =====
 REDIS_URL=redis://redis:6379/0
+EOF
+    fi
 
 # ===== REMNAWAVE API =====
 REMNAWAVE_API_URL=${REMNAWAVE_API_URL}
