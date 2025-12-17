@@ -115,15 +115,14 @@ print_final_info() {
     echo ""
     
     echo -e "${YELLOW}⚠️  Важно:${NC}"
-    if [ "$KEEP_OLD_ENV" = "true" ]; then
-        echo -e "  - ${GREEN}Настройки PostgreSQL сохранены из предыдущей установки${NC}"
-        echo -e "  - Данные базы сохранены"
-    else
-        echo -e "  - Сохраните пароль PostgreSQL из файла .env"
-    fi
     echo -e "  - Настройте бота в Telegram через @BotFather"
     if [ "$PANEL_INSTALLED_LOCALLY" != "true" ] && [ -n "$REMNAWAVE_SECRET_KEY" ]; then
         echo -e "  - Убедитесь что REMNAWAVE_SECRET_KEY совпадает с панелью eGames"
+    fi
+    if [ "$KEEP_EXISTING_VOLUMES" = "true" ]; then
+        echo -e "  - ${GREEN}Данные PostgreSQL сохранены, пароль закомментирован в .env${NC}"
+    else
+        echo -e "  - Сохраните пароль PostgreSQL из файла .env"
     fi
     echo ""
 }
