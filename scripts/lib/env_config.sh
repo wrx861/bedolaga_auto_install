@@ -10,6 +10,76 @@ create_env_file() {
     
     cd "$INSTALL_DIR"
     
+    # Если нужно сохранить старый .env (при сохранении volumes)
+    if [ "$KEEP_OLD_ENV" = "true" ] && [ -f ".env" ]; then
+        print_info "Сохраняем существующий .env (с настройками PostgreSQL)"
+        
+        # Обновляем только критичные параметры в существующем .env
+        # BOT_TOKEN
+        if [ -n "$BOT_TOKEN" ]; then
+            if grep -q "^BOT_TOKEN=" .env; then
+                sed -i "s|^BOT_TOKEN=.*|BOT_TOKEN=${BOT_TOKEN}|" .env
+            else
+                echo "BOT_TOKEN=${BOT_TOKEN}" >> .env
+            fi
+        fi
+        
+        # ADMIN_IDS
+        if [ -n "$ADMIN_IDS" ]; then
+            if grep -q "^ADMIN_IDS=" .env; then
+                sed -i "s|^ADMIN_IDS=.*|ADMIN_IDS=${ADMIN_IDS}|" .env
+            else
+                echo "ADMIN_IDS=${ADMIN_IDS}" >> .env
+            fi
+        fi
+        
+        # REMNAWAVE_API_URL
+        if [ -n "$REMNAWAVE_API_URL" ]; then
+            if grep -q "^REMNAWAVE_API_URL=" .env; then
+                sed -i "s|^REMNAWAVE_API_URL=.*|REMNAWAVE_API_URL=${REMNAWAVE_API_URL}|" .env
+            else
+                echo "REMNAWAVE_API_URL=${REMNAWAVE_API_URL}" >> .env
+            fi
+        fi
+        
+        # REMNAWAVE_API_KEY
+        if [ -n "$REMNAWAVE_API_KEY" ]; then
+            if grep -q "^REMNAWAVE_API_KEY=" .env; then
+                sed -i "s|^REMNAWAVE_API_KEY=.*|REMNAWAVE_API_KEY=${REMNAWAVE_API_KEY}|" .env
+            else
+                echo "REMNAWAVE_API_KEY=${REMNAWAVE_API_KEY}" >> .env
+            fi
+        fi
+        
+        # REMNAWAVE_SECRET_KEY (eGames)
+        if [ -n "$REMNAWAVE_SECRET_KEY" ]; then
+            if grep -q "^REMNAWAVE_SECRET_KEY=" .env; then
+                sed -i "s|^REMNAWAVE_SECRET_KEY=.*|REMNAWAVE_SECRET_KEY=${REMNAWAVE_SECRET_KEY}|" .env
+            else
+                echo "REMNAWAVE_SECRET_KEY=${REMNAWAVE_SECRET_KEY}" >> .env
+            fi
+        fi
+        
+        # WEBHOOK_URL
+        if [ -n "$WEBHOOK_DOMAIN" ]; then
+            local webhook_url="https://${WEBHOOK_DOMAIN}/webhook"
+            if grep -q "^WEBHOOK_URL=" .env; then
+                sed -i "s|^WEBHOOK_URL=.*|WEBHOOK_URL=${webhook_url}|" .env
+            else
+                echo "WEBHOOK_URL=${webhook_url}" >> .env
+            fi
+            
+            if grep -q "^BOT_RUN_MODE=" .env; then
+                sed -i "s|^BOT_RUN_MODE=.*|BOT_RUN_MODE=webhook|" .env
+            else
+                echo "BOT_RUN_MODE=webhook" >> .env
+            fi
+        fi
+        
+        print_success "Существующий .env обновлён (настройки БД сохранены)"
+        return 0
+    fi
+    
     # Определяем ADMIN_NOTIFICATIONS_ENABLED
     if [ -n "$ADMIN_NOTIFICATIONS_CHAT_ID" ]; then
         ADMIN_NOTIFICATIONS_ENABLED="true"
@@ -38,33 +108,8 @@ EOF
         echo "ADMIN_NOTIFICATIONS_CHAT_ID=${ADMIN_NOTIFICATIONS_CHAT_ID}" >> .env
     fi
     
-    # Продолжаем .env файл
-    # Если используем существующую БД - используем старые POSTGRES настройки
-    if [ "$USE_OLD_POSTGRES_SETTINGS" = "true" ]; then
-        # Используем старые настройки PostgreSQL
-        local pg_host="${OLD_POSTGRES_HOST:-postgres}"
-        local pg_port="${OLD_POSTGRES_PORT:-5432}"
-        local pg_db="${OLD_POSTGRES_DB:-remnawave_bot}"
-        local pg_user="${OLD_POSTGRES_USER:-remnawave_user}"
-        local pg_pass="${OLD_POSTGRES_PASSWORD}"
-        
-        cat >> .env << EOF
-
-# ===== DATABASE =====
-# ⚠️ Используются настройки из существующей БД
-DATABASE_MODE=auto
-POSTGRES_HOST=${pg_host}
-POSTGRES_PORT=${pg_port}
-POSTGRES_DB=${pg_db}
-POSTGRES_USER=${pg_user}
-POSTGRES_PASSWORD=${pg_pass}
-
-# ===== REDIS =====
-REDIS_URL=redis://redis:6379/0
-EOF
-        print_success "Использованы настройки PostgreSQL из существующей установки"
-    else
-        cat >> .env << EOF
+    # Продолжаем .env файл - DATABASE секция
+    cat >> .env << EOF
 
 # ===== DATABASE =====
 DATABASE_MODE=auto
@@ -77,7 +122,6 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 # ===== REDIS =====
 REDIS_URL=redis://redis:6379/0
 EOF
-    fi
 
     # Добавляем REMNAWAVE API настройки
     cat >> .env << EOF
