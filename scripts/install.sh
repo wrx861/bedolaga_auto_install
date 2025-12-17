@@ -97,6 +97,10 @@ main() {
     # Проверка типа установки (локальная панель или отдельный сервер)
     check_remnawave_panel
     
+    # Проверка существующих volumes PostgreSQL (ДО интерактивной настройки!)
+    # Это определяет, нужно ли спрашивать пароль PostgreSQL
+    check_postgres_volume
+    
     # Клонирование репозитория
     clone_repository
     
