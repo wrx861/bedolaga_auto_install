@@ -11,10 +11,27 @@ create_env_file() {
     cd "$INSTALL_DIR"
     
     # Если нужно сохранить старый .env (при сохранении volumes)
-    if [ "$KEEP_OLD_ENV" = "true" ] && [ -f ".env" ]; then
-        print_info "Сохраняем существующий .env (с настройками PostgreSQL)"
+    # Используем бэкап из /tmp если текущий .env уже перезаписан
+    local old_env_file=""
+    if [ "$KEEP_OLD_ENV" = "true" ]; then
+        if [ -f ".env" ] && grep -q "POSTGRES_PASSWORD" ".env" 2>/dev/null; then
+            old_env_file=".env"
+        elif [ -n "$OLD_ENV_BACKUP" ] && [ -f "$OLD_ENV_BACKUP" ]; then
+            old_env_file="$OLD_ENV_BACKUP"
+            print_info "Используем бэкап старого .env"
+        fi
+    fi
+    
+    if [ -n "$old_env_file" ]; then
+        print_info "Восстанавливаем настройки PostgreSQL из: $old_env_file"
         
-        # Обновляем только критичные параметры в существующем .env
+        # Если бэкап в /tmp - восстанавливаем его как .env
+        if [ "$old_env_file" != ".env" ]; then
+            cp "$old_env_file" ".env"
+            print_info "Восстановлен старый .env из бэкапа"
+        fi
+        
+        # Теперь обновляем параметры в .env через sed
         # BOT_TOKEN
         if [ -n "$BOT_TOKEN" ]; then
             if grep -q "^BOT_TOKEN=" .env; then
@@ -60,7 +77,7 @@ create_env_file() {
             fi
         fi
         
-        # WEBHOOK_URL
+        # WEBHOOK_URL и BOT_RUN_MODE
         if [ -n "$WEBHOOK_DOMAIN" ]; then
             local webhook_url="https://${WEBHOOK_DOMAIN}/webhook"
             if grep -q "^WEBHOOK_URL=" .env; then
@@ -76,7 +93,12 @@ create_env_file() {
             fi
         fi
         
-        print_success "Существующий .env обновлён (настройки БД сохранены)"
+        # Удаляем временный бэкап
+        if [ -n "$OLD_ENV_BACKUP" ] && [ -f "$OLD_ENV_BACKUP" ]; then
+            rm -f "$OLD_ENV_BACKUP"
+        fi
+        
+        print_success "✅ .env восстановлен с сохранением настроек PostgreSQL"
         return 0
     fi
     
