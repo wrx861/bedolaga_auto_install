@@ -10,98 +10,6 @@ create_env_file() {
     
     cd "$INSTALL_DIR"
     
-    # Если нужно сохранить старый .env (при сохранении volumes)
-    # Используем бэкап из /tmp если текущий .env уже перезаписан
-    local old_env_file=""
-    if [ "$KEEP_OLD_ENV" = "true" ]; then
-        if [ -f ".env" ] && grep -q "POSTGRES_PASSWORD" ".env" 2>/dev/null; then
-            old_env_file=".env"
-        elif [ -n "$OLD_ENV_BACKUP" ] && [ -f "$OLD_ENV_BACKUP" ]; then
-            old_env_file="$OLD_ENV_BACKUP"
-            print_info "Используем бэкап старого .env"
-        fi
-    fi
-    
-    if [ -n "$old_env_file" ]; then
-        print_info "Восстанавливаем настройки PostgreSQL из: $old_env_file"
-        
-        # Если бэкап в /tmp - восстанавливаем его как .env
-        if [ "$old_env_file" != ".env" ]; then
-            cp "$old_env_file" ".env"
-            print_info "Восстановлен старый .env из бэкапа"
-        fi
-        
-        # Теперь обновляем параметры в .env через sed
-        # BOT_TOKEN
-        if [ -n "$BOT_TOKEN" ]; then
-            if grep -q "^BOT_TOKEN=" .env; then
-                sed -i "s|^BOT_TOKEN=.*|BOT_TOKEN=${BOT_TOKEN}|" .env
-            else
-                echo "BOT_TOKEN=${BOT_TOKEN}" >> .env
-            fi
-        fi
-        
-        # ADMIN_IDS
-        if [ -n "$ADMIN_IDS" ]; then
-            if grep -q "^ADMIN_IDS=" .env; then
-                sed -i "s|^ADMIN_IDS=.*|ADMIN_IDS=${ADMIN_IDS}|" .env
-            else
-                echo "ADMIN_IDS=${ADMIN_IDS}" >> .env
-            fi
-        fi
-        
-        # REMNAWAVE_API_URL
-        if [ -n "$REMNAWAVE_API_URL" ]; then
-            if grep -q "^REMNAWAVE_API_URL=" .env; then
-                sed -i "s|^REMNAWAVE_API_URL=.*|REMNAWAVE_API_URL=${REMNAWAVE_API_URL}|" .env
-            else
-                echo "REMNAWAVE_API_URL=${REMNAWAVE_API_URL}" >> .env
-            fi
-        fi
-        
-        # REMNAWAVE_API_KEY
-        if [ -n "$REMNAWAVE_API_KEY" ]; then
-            if grep -q "^REMNAWAVE_API_KEY=" .env; then
-                sed -i "s|^REMNAWAVE_API_KEY=.*|REMNAWAVE_API_KEY=${REMNAWAVE_API_KEY}|" .env
-            else
-                echo "REMNAWAVE_API_KEY=${REMNAWAVE_API_KEY}" >> .env
-            fi
-        fi
-        
-        # REMNAWAVE_SECRET_KEY (eGames)
-        if [ -n "$REMNAWAVE_SECRET_KEY" ]; then
-            if grep -q "^REMNAWAVE_SECRET_KEY=" .env; then
-                sed -i "s|^REMNAWAVE_SECRET_KEY=.*|REMNAWAVE_SECRET_KEY=${REMNAWAVE_SECRET_KEY}|" .env
-            else
-                echo "REMNAWAVE_SECRET_KEY=${REMNAWAVE_SECRET_KEY}" >> .env
-            fi
-        fi
-        
-        # WEBHOOK_URL и BOT_RUN_MODE
-        if [ -n "$WEBHOOK_DOMAIN" ]; then
-            local webhook_url="https://${WEBHOOK_DOMAIN}/webhook"
-            if grep -q "^WEBHOOK_URL=" .env; then
-                sed -i "s|^WEBHOOK_URL=.*|WEBHOOK_URL=${webhook_url}|" .env
-            else
-                echo "WEBHOOK_URL=${webhook_url}" >> .env
-            fi
-            
-            if grep -q "^BOT_RUN_MODE=" .env; then
-                sed -i "s|^BOT_RUN_MODE=.*|BOT_RUN_MODE=webhook|" .env
-            else
-                echo "BOT_RUN_MODE=webhook" >> .env
-            fi
-        fi
-        
-        # Удаляем временный бэкап
-        if [ -n "$OLD_ENV_BACKUP" ] && [ -f "$OLD_ENV_BACKUP" ]; then
-            rm -f "$OLD_ENV_BACKUP"
-        fi
-        
-        print_success "✅ .env восстановлен с сохранением настроек PostgreSQL"
-        return 0
-    fi
-    
     # Определяем ADMIN_NOTIFICATIONS_ENABLED
     if [ -n "$ADMIN_NOTIFICATIONS_CHAT_ID" ]; then
         ADMIN_NOTIFICATIONS_ENABLED="true"
@@ -139,7 +47,23 @@ POSTGRES_HOST=postgres
 POSTGRES_PORT=5432
 POSTGRES_DB=remnawave_bot
 POSTGRES_USER=remnawave_user
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+EOF
+
+    # POSTGRES_PASSWORD: пишем или комментируем в зависимости от наличия существующих volumes
+    if [ "$KEEP_EXISTING_VOLUMES" = "true" ]; then
+        # Переустановка — комментируем пароль, чтобы использовался существующий из БД
+        cat >> .env << EOF
+# POSTGRES_PASSWORD закомментирован — используется пароль из существующей БД
+# Раскомментируйте и укажите пароль только если знаете его
+# POSTGRES_PASSWORD=
+EOF
+        print_info "POSTGRES_PASSWORD закомментирован (используется существующий из БД)"
+    else
+        # Первая установка — пишем сгенерированный пароль
+        echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" >> .env
+    fi
+
+    cat >> .env << EOF
 
 # ===== REDIS =====
 REDIS_URL=redis://redis:6379/0
