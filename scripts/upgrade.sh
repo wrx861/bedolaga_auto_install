@@ -70,7 +70,7 @@ echo -e "  ${CYAN}3)${NC} 🔧 Обновить скрипты установщ�
 echo -e "  ${CYAN}4)${NC} 📋 Всё вместе (рекомендуется)"
 echo -e "  ${CYAN}0)${NC} Отмена"
 echo
-read -p "Ваш выбор [4]: " CHOICE
+read -p "Ваш выбор [4]: " CHOICE < /dev/tty
 CHOICE=${CHOICE:-4}
 
 case $CHOICE in
@@ -149,7 +149,7 @@ install_bot_command() {
     
     if [ -f "/usr/local/bin/bot" ]; then
         echo -e "${YELLOW}Команда 'bot' уже существует. Обновить? (y/n) [y]:${NC}"
-        read -n 1 -r REPLY
+        read -n 1 -r REPLY < /dev/tty
         echo
         REPLY=${REPLY:-y}
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
