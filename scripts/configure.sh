@@ -133,12 +133,18 @@ edit_remnawave() {
     
     echo
     echo -e "${YELLOW}REMNAWAVE_SECRET_KEY нужен для панелей установленных через eGames${NC}"
-    echo -e "${WHITE}Формат: XXXXXXX:DDDDDDDD (из URL панели)${NC}"
+    echo -e "${WHITE}Формат: KEY:VALUE (через ДВОЕТОЧИЕ!)${NC}"
+    echo -e "${YELLOW}Если в URL панели: ?ABC=XYZ → вводите: ABC:XYZ${NC}"
     read -p "Новый REMNAWAVE_SECRET_KEY (Enter для пропуска, 'delete' для удаления): " NEW_SECRET
     if [ "$NEW_SECRET" == "delete" ]; then
         sed -i '/^REMNAWAVE_SECRET_KEY=/d' "$ENV_FILE"
         echo -e "${GREEN}✅ REMNAWAVE_SECRET_KEY удален${NC}"
     elif [ -n "$NEW_SECRET" ]; then
+        # Автозамена = на : если пользователь ввёл через =
+        if [[ "$NEW_SECRET" == *"="* ]] && [[ "$NEW_SECRET" != *":"* ]]; then
+            NEW_SECRET="${NEW_SECRET/=/:/}"
+            echo -e "${YELLOW}⚠️ Автозамена = на : → $NEW_SECRET${NC}"
+        fi
         set_env_value "REMNAWAVE_SECRET_KEY" "$NEW_SECRET"
         echo -e "${GREEN}✅ REMNAWAVE_SECRET_KEY обновлен${NC}"
     fi
