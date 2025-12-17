@@ -83,47 +83,69 @@ check_postgres_volume() {
         [ -n "$vol" ] && echo -e "${CYAN}   - $vol${NC}"
     done
     echo
-    echo -e "${WHITE}   Варианты:${NC}"
-    echo -e "${CYAN}   1)${NC} Сохранить данные (рекомендуется) — пароль PostgreSQL будет взят из существующей БД"
-    echo -e "${CYAN}   2)${NC} Удалить volumes и начать с чистой БД — можно задать новый пароль"
-    echo
-    read -p "   Выберите (1/2) [1]: " vol_choice < /dev/tty
-    vol_choice=${vol_choice:-1}
     
-    case $vol_choice in
-        2)
-            print_warning "Удаление volumes..."
-            
-            # Используем down -v для гарантированного удаления volumes
-            cd "$INSTALL_DIR" 2>/dev/null || true
-            docker compose -f docker-compose.local.yml down -v 2>/dev/null || true
-            docker compose down -v 2>/dev/null || true
-            
-            # Дополнительно удаляем volumes по имени
-            echo "$found_volumes" | while read vol; do
-                if [ -n "$vol" ]; then
-                    print_info "Удаляем: $vol"
-                    docker volume rm "$vol" 2>/dev/null || true
-                fi
-            done
-            
-            # Ещё раз по известным паттернам
-            docker volume ls -q 2>/dev/null | grep -E "postgres.*bot|bot.*postgres" | xargs -r docker volume rm 2>/dev/null || true
-            
-            print_success "Volumes удалены. Будет создана новая база с новым паролем."
-            # Флаг остаётся false — будет спрошен новый пароль
-            ;;
-        *)
-            if [ -n "$OLD_POSTGRES_PASSWORD" ]; then
-                print_success "Данные сохранены. Пароль PostgreSQL будет восстановлен из старого .env"
-            else
-                print_warning "Данные сохранены, но старый пароль не найден!"
-                echo -e "${YELLOW}   Возможна ошибка аутентификации. Если это произойдёт:${NC}"
-                echo -e "${CYAN}   docker compose down -v && docker compose up -d${NC}"
-            fi
-            export KEEP_EXISTING_VOLUMES="true"
-            ;;
-    esac
+    # Разная логика в зависимости от того, найден ли старый пароль
+    if [ -n "$OLD_POSTGRES_PASSWORD" ]; then
+        # Пароль найден — можно сохранить данные
+        echo -e "${GREEN}   ✅ Найден пароль PostgreSQL из старого .env${NC}"
+        echo
+        echo -e "${WHITE}   Варианты:${NC}"
+        echo -e "${CYAN}   1)${NC} Сохранить данные (рекомендуется)"
+        echo -e "${CYAN}   2)${NC} Удалить volumes и начать с чистой БД"
+        echo
+        read -p "   Выберите (1/2) [1]: " vol_choice < /dev/tty
+        vol_choice=${vol_choice:-1}
+        
+        case $vol_choice in
+            2)
+                delete_postgres_volumes "$found_volumes"
+                ;;
+            *)
+                print_success "Данные сохранены. Пароль PostgreSQL будет восстановлен."
+                export KEEP_EXISTING_VOLUMES="true"
+                ;;
+        esac
+    else
+        # Пароль НЕ найден — данные сохранить НЕВОЗМОЖНО
+        echo -e "${RED}   ❌ Пароль PostgreSQL НЕ НАЙДЕН!${NC}"
+        echo -e "${YELLOW}   Без пароля невозможно подключиться к существующей базе.${NC}"
+        echo -e "${YELLOW}   Volumes будут удалены для создания новой БД.${NC}"
+        echo
+        
+        if confirm "   Удалить volumes и начать с чистой базы?"; then
+            delete_postgres_volumes "$found_volumes"
+        else
+            echo -e "${RED}   Установка отменена. Найдите старый .env с паролем или удалите volumes вручную:${NC}"
+            echo -e "${CYAN}   docker volume rm $found_volumes${NC}"
+            exit 1
+        fi
+    fi
+}
+
+# Функция удаления volumes
+delete_postgres_volumes() {
+    local found_volumes="$1"
+    
+    print_warning "Удаление volumes..."
+    
+    # Используем down -v для гарантированного удаления volumes
+    cd "$INSTALL_DIR" 2>/dev/null || true
+    docker compose -f docker-compose.local.yml down -v 2>/dev/null || true
+    docker compose down -v 2>/dev/null || true
+    
+    # Дополнительно удаляем volumes по имени
+    echo "$found_volumes" | while read vol; do
+        if [ -n "$vol" ]; then
+            print_info "Удаляем: $vol"
+            docker volume rm "$vol" 2>/dev/null || true
+        fi
+    done
+    
+    # Ещё раз по известным паттернам
+    docker volume ls -q 2>/dev/null | grep -E "postgres.*bot|bot.*postgres" | xargs -r docker volume rm 2>/dev/null || true
+    
+    print_success "Volumes удалены. Будет создана новая база."
+    # Флаг остаётся false — будет спрошен новый пароль
 }
 
 # Создание стандартного docker-compose.yml для отдельной установки
