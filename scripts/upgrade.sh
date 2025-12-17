@@ -145,15 +145,46 @@ do_status() {
 do_restart() {
     check_install_dir
     echo -e "\${CYAN}🔄 Перезапуск бота...\${NC}"
-    docker compose -f "\$COMPOSE_FILE" restart
-    echo -e "\${GREEN}✅ Бот перезапущен\${NC}"
+    
+    # Проверяем и создаём сеть если нужно
+    if grep -q "external: true" "\$COMPOSE_FILE" 2>/dev/null; then
+        if ! docker network ls --format '{{.Name}}' | grep -q "remnawave-network"; then
+            echo -e "\${YELLOW}Создаём сеть remnawave-network...\${NC}"
+            docker network create remnawave-network 2>/dev/null || true
+        fi
+    fi
+    
+    docker compose -f "\$COMPOSE_FILE" restart 2>&1
+    sleep 3
+    if docker ps --format '{{.Names}}' | grep -q "remnawave_bot"; then
+        echo -e "\${GREEN}✅ Бот перезапущен\${NC}"
+    else
+        echo -e "\${RED}❌ Бот не запустился! Проверьте логи: bot logs\${NC}"
+    fi
 }
 
 do_start() {
     check_install_dir
     echo -e "\${CYAN}▶️  Запуск бота...\${NC}"
-    docker compose -f "\$COMPOSE_FILE" up -d
-    echo -e "\${GREEN}✅ Бот запущен\${NC}"
+    
+    # Проверяем и создаём сеть если нужно
+    if grep -q "external: true" "\$COMPOSE_FILE" 2>/dev/null; then
+        if ! docker network ls --format '{{.Name}}' | grep -q "remnawave-network"; then
+            echo -e "\${YELLOW}Создаём сеть remnawave-network...\${NC}"
+            docker network create remnawave-network 2>/dev/null || true
+        fi
+    fi
+    
+    if docker compose -f "\$COMPOSE_FILE" up -d 2>&1; then
+        sleep 3
+        if docker ps --format '{{.Names}}' | grep -q "remnawave_bot"; then
+            echo -e "\${GREEN}✅ Бот запущен\${NC}"
+        else
+            echo -e "\${RED}❌ Бот не запустился! Проверьте логи: bot logs\${NC}"
+        fi
+    else
+        echo -e "\${RED}❌ Ошибка запуска!\${NC}"
+    fi
 }
 
 do_stop() {
