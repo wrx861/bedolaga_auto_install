@@ -330,13 +330,22 @@ interactive_setup() {
         read -p "   Используете панель, установленную скриптом eGames? [y/N]: " use_egames_input < /dev/tty
         if [[ "${use_egames_input,,}" == "y" ]]; then
             USE_EGAMES="true"
-            echo -e "\n${CYAN}   Введите секретный ключ в формате XXXXXXX=DDDDDDDD${NC}"
+            echo -e "\n${CYAN}   Введите секретный ключ в формате KEY:VALUE (через двоеточие!)${NC}"
             echo -e "${WHITE}   Это параметр из URL доступа к панели.${NC}"
             echo
             echo -e "${YELLOW}   Пример URL: https://panel.example.com/auth/login?MHPsUKCz=VfHqrBwp${NC}"
-            echo -e "${YELLOW}   SECRET_KEY: MHPsUKCz=VfHqrBwp${NC}"
+            echo -e "${YELLOW}   SECRET_KEY: MHPsUKCz:VfHqrBwp  (замените = на :)${NC}"
+            echo
+            echo -e "${RED}   ⚠️ ВАЖНО: Используйте ДВОЕТОЧИЕ (:), а не знак равно (=)!${NC}"
             echo
             read -p "   REMNAWAVE_SECRET_KEY: " REMNAWAVE_SECRET_KEY < /dev/tty
+            
+            # Автозамена = на : если пользователь ввёл через =
+            if [[ "$REMNAWAVE_SECRET_KEY" == *"="* ]] && [[ "$REMNAWAVE_SECRET_KEY" != *":"* ]]; then
+                REMNAWAVE_SECRET_KEY="${REMNAWAVE_SECRET_KEY/=/:/}"
+                print_warning "Автоматически заменили = на : → $REMNAWAVE_SECRET_KEY"
+            fi
+            
             if [ -n "$REMNAWAVE_SECRET_KEY" ]; then
                 print_success "eGames SECRET_KEY сохранён"
             else
