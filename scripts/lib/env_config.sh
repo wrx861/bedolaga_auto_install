@@ -73,6 +73,9 @@ REDIS_URL=redis://redis:6379/0
 EOF
     fi
 
+    # Добавляем REMNAWAVE API настройки
+    cat >> .env << EOF
+
 # ===== REMNAWAVE API =====
 REMNAWAVE_API_URL=${REMNAWAVE_API_URL}
 REMNAWAVE_API_KEY=${REMNAWAVE_API_KEY}
