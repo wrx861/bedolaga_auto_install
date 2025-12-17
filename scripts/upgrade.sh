@@ -298,6 +298,88 @@ do_config() {
     echo -e "\${YELLOW}Перезапустите бота для применения: bot restart\${NC}"
 }
 
+do_install() {
+    local INSTALLER_DIR="\$INSTALL_DIR/.installer"
+    
+    echo -e "\${PURPLE}╔══════════════════════════════════════════════════════════════╗\${NC}"
+    echo -e "\${PURPLE}║           🔧 УСТАНОВЩИК БОТА 🔧                              ║\${NC}"
+    echo -e "\${PURPLE}╚══════════════════════════════════════════════════════════════╝\${NC}"
+    echo
+    
+    if [ -d "\$INSTALLER_DIR" ] && [ -f "\$INSTALLER_DIR/install.sh" ]; then
+        local VERSION=\$(cat "\$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
+        echo -e "\${GREEN}✅ Найдены локальные скрипты установщика (v\$VERSION)\${NC}"
+        echo
+        echo -e "\${WHITE}Варианты:\${NC}"
+        echo -e "  \${CYAN}1)\${NC} Запустить установщик"
+        echo -e "  \${CYAN}2)\${NC} Обновить скрипты установщика"
+        echo -e "  \${CYAN}3)\${NC} Скачать и запустить с GitHub"
+        echo -e "  \${CYAN}0)\${NC} Отмена"
+        echo
+        read -p "Ваш выбор [1]: " choice
+        choice=\${choice:-1}
+        
+        case \$choice in
+            1)
+                echo -e "\${CYAN}🚀 Запуск установщика...\${NC}"
+                sudo bash "\$INSTALLER_DIR/install.sh"
+                ;;
+            2)
+                echo -e "\${CYAN}📥 Обновление скриптов...\${NC}"
+                local TEMP_DIR=\$(mktemp -d)
+                git clone --depth 1 https://github.com/wrx861/bedolaga_auto_install.git "\$TEMP_DIR" 2>/dev/null
+                if [ -d "\$TEMP_DIR/scripts" ]; then
+                    rm -rf "\$INSTALLER_DIR"
+                    cp -r "\$TEMP_DIR/scripts" "\$INSTALLER_DIR"
+                    chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
+                    chmod +x "\$INSTALLER_DIR"/lib/*.sh 2>/dev/null
+                    local NEW_VER=\$(cat "\$INSTALLER_DIR/VERSION" 2>/dev/null || echo "?")
+                    echo -e "\${GREEN}✅ Обновлено до v\$NEW_VER\${NC}"
+                fi
+                rm -rf "\$TEMP_DIR"
+                ;;
+            3)
+                echo -e "\${CYAN}📥 Скачивание с GitHub...\${NC}"
+                curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/quick-install.sh | sudo bash
+                ;;
+            0)
+                return
+                ;;
+        esac
+    else
+        echo -e "\${YELLOW}⚠️  Локальные скрипты не найдены\${NC}"
+        echo
+        echo -e "\${WHITE}Варианты:\${NC}"
+        echo -e "  \${CYAN}1)\${NC} Скачать и запустить с GitHub"
+        echo -e "  \${CYAN}2)\${NC} Скачать скрипты локально"
+        echo -e "  \${CYAN}0)\${NC} Отмена"
+        echo
+        read -p "Ваш выбор [1]: " choice
+        choice=\${choice:-1}
+        
+        case \$choice in
+            1)
+                curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/scripts/quick-install.sh | sudo bash
+                ;;
+            2)
+                mkdir -p "\$INSTALLER_DIR"
+                local TEMP_DIR=\$(mktemp -d)
+                git clone --depth 1 https://github.com/wrx861/bedolaga_auto_install.git "\$TEMP_DIR" 2>/dev/null
+                if [ -d "\$TEMP_DIR/scripts" ]; then
+                    cp -r "\$TEMP_DIR/scripts"/* "\$INSTALLER_DIR/"
+                    chmod +x "\$INSTALLER_DIR"/*.sh 2>/dev/null
+                    chmod +x "\$INSTALLER_DIR"/lib/*.sh 2>/dev/null
+                    echo -e "\${GREEN}✅ Скрипты сохранены в \$INSTALLER_DIR\${NC}"
+                fi
+                rm -rf "\$TEMP_DIR"
+                ;;
+            0)
+                return
+                ;;
+        esac
+    fi
+}
+
 show_menu() {
     clear
     echo -e "\${PURPLE}╔══════════════════════════════════════════════════════════════╗\${NC}"
@@ -320,7 +402,9 @@ show_menu() {
     echo -e "  \${CYAN}2)\${NC} 📊 Статус            \${CYAN}7)\${NC} 🏥 Диагностика"
     echo -e "  \${CYAN}3)\${NC} 🔄 Перезапуск        \${CYAN}8)\${NC} ⚙️  Редактировать .env"
     echo -e "  \${CYAN}4)\${NC} ▶️  Запуск            \${CYAN}9)\${NC} 📦 Обновить бота"
-    echo -e "  \${CYAN}5)\${NC} ⏹️  Остановка         \${CYAN}q)\${NC} Выход"
+    echo -e "  \${CYAN}5)\${NC} ⏹️  Остановка         \${CYAN}i)\${NC} 🔧 Установщик"
+    echo
+    echo -e "  \${CYAN}q)\${NC} Выход"
     echo
 }
 
@@ -339,6 +423,7 @@ interactive_menu() {
             7) do_health; read -p "Нажмите Enter..." ;;
             8) do_config ;;
             9) do_update; read -p "Нажмите Enter..." ;;
+            i|I) do_install; read -p "Нажмите Enter..." ;;
             q|Q|exit) echo -e "\${GREEN}До свидания!\${NC}"; exit 0 ;;
             *) echo -e "\${RED}Неверный выбор\${NC}"; sleep 1 ;;
         esac
@@ -364,6 +449,7 @@ show_help() {
     echo -e "  \${GREEN}backup\${NC}     — Резервная копия"
     echo -e "  \${GREEN}health\${NC}     — Диагностика"
     echo -e "  \${GREEN}config\${NC}     — Редактировать .env"
+    echo -e "  \${GREEN}install\${NC}    — Запустить установщик"
 }
 
 case "\$1" in
@@ -376,6 +462,7 @@ case "\$1" in
     backup)     do_backup ;;
     health|check) do_health ;;
     config|edit) do_config ;;
+    install|setup|reinstall) do_install ;;
     help|--help|-h) show_help ;;
     "")         interactive_menu ;;
     *)
