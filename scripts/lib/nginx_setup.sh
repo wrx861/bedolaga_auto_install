@@ -458,21 +458,36 @@ server {
     
     client_max_body_size 32m;
     
-    # Все запросы проксируем на бота (он сам отдаёт статику miniapp)
+    # Статические файлы Mini App
+    root ${INSTALL_DIR}/miniapp;
+    index index.html;
+    
+    # Основной location - отдаём статику напрямую
     location / {
+        try_files \$uri \$uri/ /index.html;
+        expires 1h;
+        add_header Cache-Control "public";
+    }
+    
+    # API эндпоинты /miniapp/* проксируем на бота
+    location /miniapp/ {
         proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_read_timeout 120s;
         proxy_send_timeout 120s;
+        proxy_buffering off;
+        proxy_request_buffering off;
     }
     
-    # app-config.json с CORS
+    # app-config.json с CORS проксируем на бота
     location = /app-config.json {
         add_header Access-Control-Allow-Origin "*";
         proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
     }
