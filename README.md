@@ -84,6 +84,7 @@ docker builder prune -a -f && docker compose down && docker compose build --no-c
 - автоматическая подготовка окружения
 - определение существующего Remnawave
 - если локальный Remnawave уже есть — кабинет встраивается в его реальный proxy-контур внутри `/opt/remnawave` (`nginx.conf` или `caddy/Caddyfile`), без второго конфликтного proxy
+- перед правкой panel proxy installer делает backup конфига и затем применяет интеграцию
 - режим `подключить Remnawave позже`
 - live-проверка текущего состояния
 - update-кнопки с реальной рабочей логикой

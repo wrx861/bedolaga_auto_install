@@ -343,12 +343,17 @@ integrate_with_existing_remnawave_proxy() {
   local begin_marker="# BEGIN bedolaga-installer"
   local end_marker="# END bedolaga-installer"
   local tmp_file
+  local backup_path
 
   [[ -f "$integration_conf" ]] || { warn "Не найден интеграционный proxy-конфиг: $integration_conf"; return 0; }
   [[ -n "$proxy_config" && -f "$proxy_config" ]] || { warn "Не найден proxy-конфиг Remnawave: ${proxy_config:-unset}"; return 0; }
 
   section "Интеграция в proxy панели Remnawave"
   tmp_file="$(mktemp)"
+  backup_path="${proxy_config}.bedolaga.bak.$(date +%Y%m%d-%H%M%S)"
+
+  cp "$proxy_config" "$backup_path"
+  ok "Создал backup proxy-конфига: $backup_path"
 
   awk -v begin="$begin_marker" -v end="$end_marker" '
     $0 == begin {skip=1; next}
@@ -373,17 +378,17 @@ integrate_with_existing_remnawave_proxy() {
       [[ -f "$compose_file" ]] || { warn "docker-compose панели не найден: $compose_file"; return 0; }
       (
         cd "$caddy_root"
-        compose_run down
         compose_run up -d
       )
       ok "Caddy панели перезапущен"
       ;;
     nginx)
       if command_exists docker && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'remnawave'; then
+        docker exec remnawave nginx -t >/dev/null
         docker restart remnawave >/dev/null
-        ok "Nginx панели перезапущен через контейнер remnawave"
+        ok "Nginx панели проверен и перезапущен через контейнер remnawave"
       else
-        warn "Nginx-конфиг обновлён, но контейнер remnawave для рестарта не найден автоматически"
+        warn "Nginx-конфиг обновлён, но контейнер remnawave для проверки/рестарта не найден автоматически"
       fi
       ;;
     *)
