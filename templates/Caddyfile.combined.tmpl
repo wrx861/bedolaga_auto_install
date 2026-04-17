@@ -1,0 +1,14 @@
+https://${CABINET_DOMAIN} {
+    encode gzip zstd
+
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy remnawave_bot:8080
+    }
+
+    handle {
+        root * /srv/cabinet
+        try_files {path} /index.html
+        file_server
+    }
+}

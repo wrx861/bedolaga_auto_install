@@ -1,0 +1,22 @@
+Target install layout
+=====================
+
+/opt/remnawave-bedolaga-telegram-bot/
+├── .git/
+├── generated/
+├── bundles/
+└── INSTALLER_NEXT_STEPS.txt
+
+/opt/bedolaga-cabinet/
+├── .git/
+├── generated/
+├── bundles/
+└── INSTALLER_NEXT_STEPS.txt
+
+/opt/bedolaga-proxy/
+├── generated/
+└── INSTALLER_NEXT_STEPS.txt
+
+Update model:
+- bot: `cd /opt/remnawave-bedolaga-telegram-bot && git pull`
+- cabinet: `cd /opt/bedolaga-cabinet && git pull`

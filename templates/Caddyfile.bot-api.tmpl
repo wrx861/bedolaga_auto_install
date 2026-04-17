@@ -1,0 +1,6 @@
+# Bot API / admin exposure template
+# WARNING: review before public exposure
+https://${BOT_DOMAIN} {
+    encode gzip zstd
+    reverse_proxy 127.0.0.1:8080
+}

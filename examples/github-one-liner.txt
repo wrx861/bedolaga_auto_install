@@ -1,0 +1,9 @@
+# Intended public one-liners
+
+bash <(curl -fsSL https://raw.githubusercontent.com/BEDOLAGA-DEV/bedolaga-stack-installer/main/bootstrap.sh)
+
+# Optional custom branch
+BEDOLAGA_INSTALLER_BRANCH=dev bash <(curl -fsSL https://raw.githubusercontent.com/BEDOLAGA-DEV/bedolaga-stack-installer/main/bootstrap.sh)
+
+# Optional custom target dir
+BEDOLAGA_INSTALLER_DIR=/opt/bedolaga-installer bash <(curl -fsSL https://raw.githubusercontent.com/BEDOLAGA-DEV/bedolaga-stack-installer/main/bootstrap.sh)

@@ -1,0 +1,22 @@
+# Combined deploy commands (draft)
+
+# 1) Bot
+cd ${INSTALL_BASE_DIR}/src/remnawave-bedolaga-telegram-bot
+cp ${INSTALL_BASE_DIR}/bundles/bot/.env .env
+if docker compose version >/dev/null 2>&1; then
+  docker compose -f docker-compose.yml -f ${INSTALL_BASE_DIR}/bundles/bot/docker-compose.override.yml up -d
+else
+  docker-compose -f docker-compose.yml -f ${INSTALL_BASE_DIR}/bundles/bot/docker-compose.override.yml up -d
+fi
+
+# 2) Cabinet (draft path)
+cd ${INSTALL_BASE_DIR}/src/bedolaga-cabinet
+cp ${INSTALL_BASE_DIR}/bundles/cabinet/.env .env
+if docker compose version >/dev/null 2>&1; then
+  docker compose -f ${INSTALL_BASE_DIR}/bundles/cabinet/docker-compose.yml up -d
+else
+  docker-compose -f ${INSTALL_BASE_DIR}/bundles/cabinet/docker-compose.yml up -d
+fi
+
+# 3) Proxy
+# Review ${INSTALL_BASE_DIR}/proxy/Caddyfile before applying

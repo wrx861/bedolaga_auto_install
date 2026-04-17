@@ -1,0 +1,19 @@
+# Target UX goal (draft)
+
+## One-command install from GitHub
+
+curl -fsSL https://raw.githubusercontent.com/<ORG>/<REPO>/main/install.sh | bash
+
+or
+
+bash <(curl -fsSL https://raw.githubusercontent.com/<ORG>/<REPO>/main/install.sh)
+
+## Expected flow
+1. bootstrap installer repo to local host
+2. run preflight
+3. open interactive menu
+4. choose mode: bot-only / cabinet-only / bot+cabinet
+5. answer minimal required questions
+6. generate env + proxy + compose artifacts
+7. deploy
+8. verify

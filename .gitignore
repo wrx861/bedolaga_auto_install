@@ -1,37 +1,5 @@
-# Environment files
+state/
+*.log
 .env
 .env.*
-*.env
-*.env.local
-*.env.production
-
-# Logs
-logs/
-*.log
-
-# Dependencies
-node_modules/
-__pycache__/
-*.pyc
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Docker
-docker-compose.override.yml
-
-# Backups
-*.backup
-*.bak
-
-# Temporary files
-tmp/
-temp/
-*.tmp
