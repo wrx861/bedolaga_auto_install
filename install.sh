@@ -42,7 +42,18 @@ source "$SCRIPT_DIR/lib/common.sh"
 # shellcheck source=lib/menu.sh
 source "$SCRIPT_DIR/lib/menu.sh"
 
+install_global_launcher() {
+  local launcher_path="/usr/local/bin/bot"
+  cat > "$launcher_path" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exec /opt/bedolaga-stack-installer/install.sh "$@"
+EOF
+  chmod +x "$launcher_path"
+}
+
 main() {
+  install_global_launcher
   print_banner
   ensure_bash_version
   run_main_menu
