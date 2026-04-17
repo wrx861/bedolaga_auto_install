@@ -1,19 +1,14 @@
-# Target UX goal (draft)
+# One-command install from GitHub
 
-## One-command install from GitHub
+## Recommended
 
-curl -fsSL https://raw.githubusercontent.com/<ORG>/<REPO>/main/install.sh | bash
+bash <(curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/install.sh)
 
-or
+## Alternative
 
-bash <(curl -fsSL https://raw.githubusercontent.com/<ORG>/<REPO>/main/install.sh)
+curl -fsSL https://raw.githubusercontent.com/wrx861/bedolaga_auto_install/main/install.sh | bash
 
-## Expected flow
-1. bootstrap installer repo to local host
-2. run preflight
-3. open interactive menu
-4. choose mode: bot-only / cabinet-only / bot+cabinet
-5. answer minimal required questions
-6. generate env + proxy + compose artifacts
-7. deploy
-8. verify
+## What happens
+1. bootstrap installer repo into /opt/bedolaga-stack-installer
+2. update existing installer there if already cloned
+3. run the interactive Bedolaga installer menu
