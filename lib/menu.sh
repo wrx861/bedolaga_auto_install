@@ -120,18 +120,27 @@ install_cabinet_flow() {
 check_updates_now() {
   section "Проверка обновлений"
   load_state
+
   local checked=0
-  local dir label branch behind
-  for dir in "${BOT_INSTALL_DIR:-}|Бот Бедолаги" "${CABINET_INSTALL_DIR:-}|Кабина Бедолаги"; do
-    local path="${dir%%|*}"
-    label="${dir##*|}"
+  local label path branch behind
+  local bot_root=""
+  local cabinet_root=""
+
+  bot_root="$(resolve_bot_root 2>/dev/null || true)"
+  cabinet_root="$(resolve_cabinet_root 2>/dev/null || true)"
+
+  for entry in "${bot_root}|Бот" "${cabinet_root}|Кабинет"; do
+    path="${entry%%|*}"
+    label="${entry##*|}"
     [[ -n "$path" && -d "$path/.git" ]] || continue
     checked=1
+
     branch=$(git -C "$path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)
     git -C "$path" fetch origin "$branch" --quiet || {
       warn "$label — не удалось проверить обновления"
       continue
     }
+
     behind=$(git -C "$path" rev-list --count HEAD.."origin/$branch" 2>/dev/null || echo 0)
     if [[ "$behind" =~ ^[0-9]+$ ]] && (( behind > 0 )); then
       warn "$label — доступно обновлений: $behind"
@@ -139,7 +148,8 @@ check_updates_now() {
       ok "$label — обновлений нет"
     fi
   done
-  (( checked == 1 )) || warn "Пока нечего проверять, установка ещё не выполнена"
+
+  (( checked == 1 )) || warn "Пока нечего проверять, ни бот, ни кабинет не найдены"
 }
 
 show_menu_header() {
