@@ -7,9 +7,11 @@ Deploy Bedolaga bot stack (bot + postgres + redis) for an already-existing Remna
 
 ### cabinet-only
 Deploy Bedolaga Cabinet against an already-running Bedolaga backend with Cabinet API enabled.
+If a local Remnawave panel is already installed on the same host, installer should prefer integrating cabinet routes into the existing Remnawave reverse proxy instead of creating a second conflicting proxy stack.
 
 ### bot+cabinet
-Deploy full customer-facing stack with reverse proxy and generated secrets.
+Deploy full customer-facing stack with generated secrets.
+On clean hosts this may include a dedicated proxy path. On hosts with an existing local Remnawave panel, installer should prefer reverse-proxy integration mode (`integrate-remnawave`) and merge Bedolaga routes into the panel proxy layer.
 
 ---
 

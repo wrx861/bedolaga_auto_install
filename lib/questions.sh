@@ -33,8 +33,17 @@ collect_common_answers() {
   PROXY_INSTALL_DIR="/opt/bedolaga-proxy"
   TZ_VALUE="Europe/Moscow"
 
+  local detected_remnawave=""
+  detected_remnawave="$(detect_existing_remnawave_root 2>/dev/null || true)"
+
   case "$INSTALL_MODE" in
-    cabinet-only|bot+cabinet) PROXY_MODE="caddy" ;;
+    cabinet-only|bot+cabinet)
+      if [[ -n "$detected_remnawave" ]]; then
+        PROXY_MODE="integrate-remnawave"
+      else
+        PROXY_MODE="caddy"
+      fi
+      ;;
     bot-only) PROXY_MODE="none" ;;
     *) PROXY_MODE="caddy" ;;
   esac
@@ -66,8 +75,6 @@ collect_common_answers() {
     warn "Порт 3020 занят, для кабины выбрал: $CABINET_LOCAL_PORT"
   fi
 
-  local detected_remnawave=""
-  detected_remnawave="$(detect_existing_remnawave_root 2>/dev/null || true)"
   if [[ -n "$detected_remnawave" ]]; then
     HOST_MODE="coexist"
     NETWORK_POLICY="preserve-existing"
@@ -81,7 +88,7 @@ collect_common_answers() {
     "Режим: $INSTALL_MODE" \
     "Бот: $BOT_INSTALL_DIR" \
     "Кабина: $CABINET_INSTALL_DIR" \
-    "Прокси: $PROXY_MODE" \
+    "Прокси: $(proxy_mode_label "$PROXY_MODE")" \
     "Сервер: $HOST_MODE"
 
   write_state_var INSTALL_MODE "$INSTALL_MODE"

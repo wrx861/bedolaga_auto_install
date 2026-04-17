@@ -10,7 +10,14 @@ run_verify_skeleton() {
 
   [[ -d "${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}" ]] && ok "bot dir exists" || warn "bot dir missing"
   [[ -d "${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}" ]] && ok "cabinet dir exists" || warn "cabinet dir missing"
-  [[ -d "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}" ]] && ok "proxy dir exists" || warn "proxy dir missing"
+
+  if [[ "${PROXY_MODE:-}" == "integrate-remnawave" ]]; then
+    ok "proxy integration mode selected"
+  elif [[ "${PROXY_MODE:-}" == "none" ]]; then
+    ok "proxy not required"
+  else
+    [[ -d "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}" ]] && ok "proxy dir exists" || warn "proxy dir missing"
+  fi
 
   [[ -d "${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}/generated" ]] && ok "bot generated dir exists" || warn "bot generated dir missing"
   [[ -d "${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}/bundles" ]] && ok "bot bundles dir exists" || warn "bot bundles dir missing"

@@ -56,6 +56,11 @@ validate_session_inputs() {
     *) error "Unknown NETWORK_POLICY: ${NETWORK_POLICY:-unset}"; ((failures++)) ;;
   esac
 
+  case "${PROXY_MODE:-}" in
+    caddy|nginx|integrate-remnawave|none) ;;
+    *) error "Unknown PROXY_MODE: ${PROXY_MODE:-unset}"; ((failures++)) ;;
+  esac
+
   validate_tcp_port "${BOT_LOCAL_PORT:-}" || { error "Invalid BOT_LOCAL_PORT=${BOT_LOCAL_PORT:-unset}"; ((failures++)); }
   validate_tcp_port "${CABINET_LOCAL_PORT:-}" || { error "Invalid CABINET_LOCAL_PORT=${CABINET_LOCAL_PORT:-unset}"; ((failures++)); }
 

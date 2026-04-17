@@ -344,6 +344,16 @@ slugify() {
   tr '[:upper:]' '[:lower:]' <<<"$1" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//'
 }
 
+proxy_mode_label() {
+  case "${1:-}" in
+    caddy) printf '%s' 'отдельный Caddy' ;;
+    nginx) printf '%s' 'отдельный Nginx' ;;
+    integrate-remnawave) printf '%s' 'встрою в Remnawave' ;;
+    none) printf '%s' 'не нужен' ;;
+    *) printf '%s' "${1:-не выбран}" ;;
+  esac
+}
+
 detect_existing_remnawave_root() {
   local candidate
   for candidate in \

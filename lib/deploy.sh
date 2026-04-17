@@ -12,12 +12,16 @@ prepare_layout() {
 
   mkdir -p "${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}"
   mkdir -p "${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}"
-  mkdir -p "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}"
   mkdir -p "${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}/generated"
   mkdir -p "${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}/generated"
-  mkdir -p "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}/generated"
 
-  ok "Created separate layout for bot/cabinet/proxy"
+  if [[ "${PROXY_MODE:-}" != "integrate-remnawave" && "${PROXY_MODE:-}" != "none" ]]; then
+    mkdir -p "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}"
+    mkdir -p "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}/generated"
+    ok "Created separate layout for bot/cabinet/proxy"
+  else
+    ok "Created layout for bot/cabinet"
+  fi
 }
 
 copy_rendered_artifacts() {
@@ -42,11 +46,13 @@ copy_rendered_artifacts() {
   fi
 
   if [[ -f "$render_root/Caddyfile" ]]; then
-    mkdir -p "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}/generated"
-    cp -R "$render_root"/. "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}/generated/"
+    if [[ "${PROXY_MODE:-}" != "integrate-remnawave" && "${PROXY_MODE:-}" != "none" ]]; then
+      mkdir -p "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}/generated"
+      cp -R "$render_root"/. "${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}/generated/"
+    fi
   fi
 
-  ok "Artifacts copied into separate generated dirs"
+  ok "Artifacts copied into generated dirs"
 }
 
 write_next_steps() {
@@ -68,7 +74,7 @@ Cabinet local port: ${CABINET_LOCAL_PORT:-3020}
 Bot dir: ${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}
 Cabinet dir: ${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}
 Proxy dir: ${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}
-Proxy mode: ${PROXY_MODE:-unset}
+Proxy mode: $(proxy_mode_label "${PROXY_MODE:-unset}")
 
 Update model (target):
 - bot update: cd ${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot} && git pull

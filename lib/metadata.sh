@@ -27,6 +27,7 @@ role=bot
 remnawaveSetupMode=${REMNAWAVE_SETUP_MODE:-now}
 cabinetDir=${CABINET_INSTALL_DIR:-}
 proxyDir=${PROXY_INSTALL_DIR:-}
+proxyIntegrationTarget=${EXISTING_REMNAWAVE_DIR:-}
 EOF
   fi
 
@@ -46,10 +47,11 @@ role=cabinet
 remnawaveSetupMode=${REMNAWAVE_SETUP_MODE:-now}
 botDir=${BOT_INSTALL_DIR:-}
 proxyDir=${PROXY_INSTALL_DIR:-}
+proxyIntegrationTarget=${EXISTING_REMNAWAVE_DIR:-}
 EOF
   fi
 
-  if [[ -n "${PROXY_INSTALL_DIR:-}" ]]; then
+  if [[ -n "${PROXY_INSTALL_DIR:-}" && "${PROXY_MODE:-}" != "integrate-remnawave" && "${PROXY_MODE:-}" != "none" ]]; then
     mkdir -p "$PROXY_INSTALL_DIR"
     cat > "$PROXY_INSTALL_DIR/.bedolaga-installer-meta" <<EOF
 installedAt=$timestamp
@@ -65,6 +67,7 @@ role=proxy
 remnawaveSetupMode=${REMNAWAVE_SETUP_MODE:-now}
 botDir=${BOT_INSTALL_DIR:-}
 cabinetDir=${CABINET_INSTALL_DIR:-}
+proxyIntegrationTarget=${EXISTING_REMNAWAVE_DIR:-}
 EOF
   fi
 

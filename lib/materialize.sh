@@ -74,6 +74,11 @@ EOF
 
 materialize_proxy_bundle() {
   load_state
+
+  if [[ "${PROXY_MODE:-}" == "integrate-remnawave" || "${PROXY_MODE:-}" == "none" ]]; then
+    return 0
+  fi
+
   local proxy_root="${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}"
   mkdir -p "$proxy_root"
 

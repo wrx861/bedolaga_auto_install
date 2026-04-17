@@ -177,6 +177,9 @@ ensure_proxy_package_for_clean_host() {
       systemctl disable --now nginx >/dev/null 2>&1 || true
       ok "nginx installed for later deploy"
       ;;
+    integrate-remnawave)
+      ok "Local Remnawave proxy integration selected, separate proxy package not needed"
+      ;;
     none)
       ok "No reverse proxy package requested"
       ;;
