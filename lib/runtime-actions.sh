@@ -164,6 +164,109 @@ install_cabinet_now() {
   fi
 }
 
+install_remnawave_panel_now() {
+  load_state
+  section "Установить панель Remnawave"
+
+  local panel_root="${REMNAWAVE_PANEL_INSTALL_DIR:-/opt/remnawave}"
+  local panel_domain="${REMNAWAVE_PANEL_DOMAIN_VALUE:-}"
+  local sub_public_domain="${REMNAWAVE_SUB_PUBLIC_DOMAIN_VALUE:-}"
+  local proxy_mode="${REMNAWAVE_PROXY_MODE_VALUE:-caddy}"
+  local compose_url="https://raw.githubusercontent.com/remnawave/backend/refs/heads/main/docker-compose-prod.yml"
+  local env_url="https://raw.githubusercontent.com/remnawave/backend/refs/heads/main/.env.sample"
+
+  [[ -n "$panel_domain" ]] || { error "Не указан домен панели Remnawave"; return 1; }
+  [[ -n "$sub_public_domain" ]] || { error "Не указан публичный адрес подписок"; return 1; }
+
+  mkdir -p "$panel_root"
+  curl -fsSL "$compose_url" -o "$panel_root/docker-compose.yml"
+  curl -fsSL "$env_url" -o "$panel_root/.env"
+  ok "Официальные файлы Remnawave скачаны"
+
+  sed -i "s/^JWT_AUTH_SECRET=.*/JWT_AUTH_SECRET=$(openssl rand -hex 64)/" "$panel_root/.env"
+  sed -i "s/^JWT_API_TOKENS_SECRET=.*/JWT_API_TOKENS_SECRET=$(openssl rand -hex 64)/" "$panel_root/.env"
+  sed -i "s/^METRICS_PASS=.*/METRICS_PASS=$(openssl rand -hex 64)/" "$panel_root/.env"
+  sed -i "s/^WEBHOOK_SECRET_HEADER=.*/WEBHOOK_SECRET_HEADER=$(openssl rand -hex 64)/" "$panel_root/.env"
+
+  local pg_pw
+  pg_pw="$(openssl rand -hex 24)"
+  sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$pg_pw/" "$panel_root/.env"
+  sed -i "s|^\(DATABASE_URL=\"postgresql://postgres:\)[^@]*\(@.*\)|\1$pg_pw\2|" "$panel_root/.env"
+
+  if grep -q '^FRONT_END_DOMAIN=' "$panel_root/.env"; then
+    sed -i "s|^FRONT_END_DOMAIN=.*|FRONT_END_DOMAIN=$panel_domain|" "$panel_root/.env"
+  else
+    printf '\nFRONT_END_DOMAIN=%s\n' "$panel_domain" >> "$panel_root/.env"
+  fi
+
+  if grep -q '^SUB_PUBLIC_DOMAIN=' "$panel_root/.env"; then
+    sed -i "s|^SUB_PUBLIC_DOMAIN=.*|SUB_PUBLIC_DOMAIN=$sub_public_domain|" "$panel_root/.env"
+  else
+    printf 'SUB_PUBLIC_DOMAIN=%s\n' "$sub_public_domain" >> "$panel_root/.env"
+  fi
+
+  if grep -q '^PANEL_DOMAIN=' "$panel_root/.env"; then
+    sed -i "s|^PANEL_DOMAIN=.*|PANEL_DOMAIN=$panel_domain|" "$panel_root/.env"
+  else
+    printf 'PANEL_DOMAIN=%s\n' "$panel_domain" >> "$panel_root/.env"
+  fi
+
+  printf 'Будет выполнено в %s:\n  %s\n' "$panel_root" "docker compose up -d"
+  if ! confirm "Запустить установку панели Remnawave сейчас?"; then
+    warn "Установка панели пропущена"
+    return 0
+  fi
+
+  (cd "$panel_root" && compose_run up -d)
+  ok "Панель Remnawave запущена"
+
+  if [[ "$proxy_mode" == 'caddy' ]]; then
+    local caddy_root="$panel_root/caddy"
+    mkdir -p "$caddy_root"
+    cat > "$caddy_root/Caddyfile" <<EOF
+https://$panel_domain {
+    reverse_proxy * http://remnawave:3000
+}
+:443 {
+    tls internal
+    respond 204
+}
+EOF
+    cat > "$caddy_root/docker-compose.yml" <<'EOF'
+services:
+  caddy:
+    image: caddy:2.9
+    container_name: caddy
+    hostname: caddy
+    restart: always
+    ports:
+      - '0.0.0.0:443:443'
+      - '0.0.0.0:80:80'
+    networks:
+      - remnawave-network
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy-ssl-data:/data
+
+networks:
+  remnawave-network:
+    name: remnawave-network
+    driver: bridge
+    external: true
+
+volumes:
+  caddy-ssl-data:
+    driver: local
+    external: false
+    name: caddy-ssl-data
+EOF
+    (cd "$caddy_root" && compose_run up -d)
+    ok "Caddy для панели поднят"
+  else
+    warn "Панель установлена локально. Reverse proxy можно добавить позже"
+  fi
+}
+
 update_bot_now() {
   load_state
   section "Обновить бота"

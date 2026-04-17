@@ -107,6 +107,11 @@ run_mode_flow() {
   run_full_prepare_pipeline
 }
 
+install_remnawave_panel_flow() {
+  collect_remnawave_panel_answers
+  install_remnawave_panel_now
+}
+
 install_bot_flow() {
   run_mode_flow "bot-only"
   run_full_deploy_pipeline
@@ -206,6 +211,7 @@ run_main_menu() {
 
     if supports_arrow_ui; then
       choice="$(interactive_select 'Главное меню' \
+        'Установить Панель Remnawave' \
         'Установить Бота' \
         'Установить Кабинет' \
         'Установить Бот + Кабину' \
@@ -216,13 +222,14 @@ run_main_menu() {
         'Выход')"
     else
       print_card "Меню" \
-        "1) Установить Бота" \
-        "2) Установить Кабинет" \
-        "3) Установить Бот + Кабину" \
-        "4) Обновить Бота" \
-        "5) Обновить Кабину" \
-        "6) Проверить обновления" \
-        "7) Показать текущее состояние" \
+        "1) Установить Панель Remnawave" \
+        "2) Установить Бота" \
+        "3) Установить Кабинет" \
+        "4) Установить Бот + Кабину" \
+        "5) Обновить Бота" \
+        "6) Обновить Кабину" \
+        "7) Проверить обновления" \
+        "8) Показать текущее состояние" \
         "0) Выход"
       hr
       if ! read_input choice "Что делаем: "; then
@@ -232,14 +239,15 @@ run_main_menu() {
     fi
 
     case "$choice" in
-      1) install_bot_flow; show_finish_screen ;;
-      2) install_cabinet_flow; show_finish_screen ;;
-      3) install_full_flow; show_finish_screen ;;
-      4) update_bot_now ;;
-      5) update_cabinet_now ;;
-      6) check_updates_now ;;
-      7) show_plan ;;
-      8|0) ok "Установщик закрыт"; break ;;
+      1) install_remnawave_panel_flow ;;
+      2) install_bot_flow; show_finish_screen ;;
+      3) install_cabinet_flow; show_finish_screen ;;
+      4) install_full_flow; show_finish_screen ;;
+      5) update_bot_now ;;
+      6) update_cabinet_now ;;
+      7) check_updates_now ;;
+      8) show_plan ;;
+      9|0) ok "Установщик закрыт"; break ;;
       *) warn "Не понял пункт меню" ;;
     esac
     printf "\n"

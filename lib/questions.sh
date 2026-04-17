@@ -193,3 +193,30 @@ collect_cabinet_answers() {
   write_state_var VITE_APP_NAME_VALUE "$VITE_APP_NAME_VALUE"
   write_state_var VITE_APP_LOGO_VALUE "$VITE_APP_LOGO_VALUE"
 }
+
+collect_remnawave_panel_answers() {
+  section "Настройка панели Remnawave"
+  print_note "Ставлю панель по официальной схеме Remnawave."
+
+  REMNAWAVE_PANEL_INSTALL_DIR="${REMNAWAVE_PANEL_INSTALL_DIR:-/opt/remnawave}"
+  REMNAWAVE_PANEL_DOMAIN_VALUE="$(prompt 'Домен панели' 'panel.example.com')"
+  REMNAWAVE_SUB_PUBLIC_DOMAIN_VALUE="$(prompt 'Публичный адрес подписок' "${REMNAWAVE_PANEL_DOMAIN_VALUE}/api/sub")"
+  REMNAWAVE_PROXY_MODE_VALUE="$(choose_option 'Поднять Caddy для панели сразу?' '1' 'да, поднять сразу' 'нет, только локальная панель')"
+
+  if [[ "$REMNAWAVE_PROXY_MODE_VALUE" == 'да, поднять сразу' ]]; then
+    REMNAWAVE_PROXY_MODE_VALUE='caddy'
+  else
+    REMNAWAVE_PROXY_MODE_VALUE='none'
+  fi
+
+  print_card "Кратко по панели" \
+    "Папка: $REMNAWAVE_PANEL_INSTALL_DIR" \
+    "Домен панели: $REMNAWAVE_PANEL_DOMAIN_VALUE" \
+    "Подписки: $REMNAWAVE_SUB_PUBLIC_DOMAIN_VALUE" \
+    "Прокси: $REMNAWAVE_PROXY_MODE_VALUE"
+
+  write_state_var REMNAWAVE_PANEL_INSTALL_DIR "$REMNAWAVE_PANEL_INSTALL_DIR"
+  write_state_var REMNAWAVE_PANEL_DOMAIN_VALUE "$REMNAWAVE_PANEL_DOMAIN_VALUE"
+  write_state_var REMNAWAVE_SUB_PUBLIC_DOMAIN_VALUE "$REMNAWAVE_SUB_PUBLIC_DOMAIN_VALUE"
+  write_state_var REMNAWAVE_PROXY_MODE_VALUE "$REMNAWAVE_PROXY_MODE_VALUE"
+}
