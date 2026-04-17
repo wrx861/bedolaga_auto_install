@@ -136,8 +136,9 @@ collect_bot_answers() {
   if [[ "$REMNAWAVE_SETUP_MODE" == 'да, подключить сейчас' ]]; then
     REMNAWAVE_SETUP_MODE="now"
     if [[ -n "$remnawave_api_default" ]]; then
+      REMNAWAVE_API_URL_VALUE="$remnawave_api_default"
       ok "Нашёл локальную панель Remnawave"
-      REMNAWAVE_API_URL_VALUE="$(prompt 'Адрес панели Remnawave' "$remnawave_api_default")"
+      ok "Адрес Remnawave подставлю автоматически: $REMNAWAVE_API_URL_VALUE"
     else
       REMNAWAVE_API_URL_VALUE="$(prompt 'Адрес панели Remnawave')"
     fi
