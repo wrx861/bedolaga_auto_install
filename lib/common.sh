@@ -26,7 +26,7 @@ print_banner() {
   cat <<'EOF'
 ╭──────────────────────────────────────────────────────────────────────╮
 │                    ⚡ BEDOLAGA INSTALLER                            │
-│                 🤖 Бот • 🗂 Кабинет • 🌐 Remnawave                  │
+│                 Bot • Cabinet • Remnawave                           │
 ╰──────────────────────────────────────────────────────────────────────╯
 EOF
 }
@@ -117,7 +117,7 @@ interactive_select() {
     for ((i=0; i<${#options[@]}; i++)); do
       line="${options[$i]}"
       if (( i == selected )); then
-        printf "%b  ❯ %s%b\n" "$C_BOLD$C_CYAN" "$line" "$C_RESET" >&2
+        printf "%b  > %s%b\n" "$C_BOLD$C_CYAN" "$line" "$C_RESET" >&2
       else
         printf "%b    %s%b\n" "$C_DIM" "$line" "$C_RESET" >&2
       fi

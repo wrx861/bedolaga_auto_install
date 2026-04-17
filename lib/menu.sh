@@ -54,16 +54,16 @@ show_plan() {
     remnawave_root="$(detect_existing_remnawave_root 2>/dev/null || true)"
   fi
 
-  [[ -n "$bot_root" ]] && bot_state="указан: ${bot_root}"
-  [[ -n "$cabinet_root" ]] && cabinet_state="указан: ${cabinet_root}"
-  [[ -n "$remnawave_root" ]] && remnawave_state="найден: ${remnawave_root}"
+  [[ -n "$bot_root" ]] && bot_state="$bot_root"
+  [[ -n "$cabinet_root" ]] && cabinet_state="$cabinet_root"
+  [[ -n "$remnawave_root" ]] && remnawave_state="$remnawave_root"
 
-  print_card "Сохранённые параметры" \
-    "Режим: $(mode_label "${INSTALL_MODE:-}")" \
-    "Бот: ${bot_state}" \
-    "Кабинет: ${cabinet_state}" \
-    "Прокси: ${proxy_state}" \
-    "Remnawave: ${remnawave_state}"
+  print_card "Текущее состояние" \
+    "Режим      $(mode_label "${INSTALL_MODE:-}")" \
+    "Бот        ${bot_state}" \
+    "Кабинет    ${cabinet_state}" \
+    "Прокси     ${proxy_state}" \
+    "Remnawave  ${remnawave_state}"
 }
 
 auto_prepare_host() {
@@ -149,20 +149,6 @@ show_menu_header() {
   hr
 }
 
-print_menu_screen() {
-  show_menu_header
-  print_card "Меню" \
-    "🤖 Установить Бота" \
-    "🗂 Установить Кабинет" \
-    "🚀 Установить Бот + Кабину" \
-    "🔄 Обновить Бота" \
-    "🧱 Обновить Кабину" \
-    "📡 Проверить обновления" \
-    "📋 Показать текущее состояние" \
-    "✖ Выход"
-  hr
-}
-
 show_finish_screen() {
   load_state
   printf "\n"
@@ -205,20 +191,30 @@ install_full_flow() {
 run_main_menu() {
   auto_prepare_host || true
   while true; do
-    print_menu_screen
+    show_menu_header
     local choice=""
 
     if supports_arrow_ui; then
-      choice="$(interactive_select 'Выбери действие' \
-        '🤖 Установить Бота' \
-        '🗂 Установить Кабинет' \
-        '🚀 Установить Бот + Кабину' \
-        '🔄 Обновить Бота' \
-        '🧱 Обновить Кабину' \
-        '📡 Проверить обновления' \
-        '📋 Показать текущее состояние' \
-        '✖ Выход')"
+      choice="$(interactive_select 'Главное меню' \
+        'Установить Бота' \
+        'Установить Кабинет' \
+        'Установить Бот + Кабину' \
+        'Обновить Бота' \
+        'Обновить Кабину' \
+        'Проверить обновления' \
+        'Показать текущее состояние' \
+        'Выход')"
     else
+      print_card "Меню" \
+        "1) Установить Бота" \
+        "2) Установить Кабинет" \
+        "3) Установить Бот + Кабину" \
+        "4) Обновить Бота" \
+        "5) Обновить Кабину" \
+        "6) Проверить обновления" \
+        "7) Показать текущее состояние" \
+        "0) Выход"
+      hr
       if ! read_input choice "Что делаем: "; then
         ok "Установщик закрыт"
         break
