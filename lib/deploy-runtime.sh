@@ -25,12 +25,14 @@ run_full_deploy_pipeline() {
       ;;
     cabinet-only)
       install_cabinet_now
+      integrate_with_existing_remnawave_caddy
       verify_cabinet_live || true
       ;;
     bot+cabinet)
       install_bot_now
       verify_bot_live || true
       install_cabinet_now
+      integrate_with_existing_remnawave_caddy
       verify_cabinet_live || true
       ;;
     *)

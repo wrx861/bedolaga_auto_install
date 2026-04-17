@@ -329,3 +329,48 @@ update_cabinet_now() {
     warn "Обновление кабины пропущено"
   fi
 }
+
+integrate_with_existing_remnawave_caddy() {
+  load_state
+
+  [[ -n "${EXISTING_REMNAWAVE_DIR:-}" ]] || return 0
+  [[ "${INSTALL_MODE:-}" =~ ^(cabinet-only|bot\+cabinet)$ ]] || return 0
+
+  local caddy_root="${EXISTING_REMNAWAVE_DIR}/caddy"
+  local caddy_file="$caddy_root/Caddyfile"
+  local compose_file="$caddy_root/docker-compose.yml"
+  local rendered_caddy="$INSTALLER_STATE_DIR/output/${INSTALL_MODE}/Caddyfile"
+  local begin_marker="# BEGIN bedolaga-installer"
+  local end_marker="# END bedolaga-installer"
+  local tmp_file
+
+  [[ -f "$rendered_caddy" ]] || return 0
+  [[ -f "$caddy_file" ]] || { warn "Caddy панели не найден: $caddy_file"; return 0; }
+  [[ -f "$compose_file" ]] || { warn "docker-compose панели не найден: $compose_file"; return 0; }
+
+  section "Интеграция в proxy панели Remnawave"
+  tmp_file="$(mktemp)"
+
+  awk -v begin="$begin_marker" -v end="$end_marker" '
+    $0 == begin {skip=1; next}
+    $0 == end {skip=0; next}
+    !skip {print}
+  ' "$caddy_file" > "$tmp_file"
+
+  {
+    printf '\n%s\n' "$begin_marker"
+    cat "$rendered_caddy"
+    printf '\n%s\n' "$end_marker"
+  } >> "$tmp_file"
+
+  cp "$tmp_file" "$caddy_file"
+  rm -f "$tmp_file"
+  ok "Маршруты Bedolaga добавлены в Caddy панели"
+
+  (
+    cd "$caddy_root"
+    compose_run down
+    compose_run up -d
+  )
+  ok "Caddy панели перезапущен"
+}
