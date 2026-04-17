@@ -151,17 +151,15 @@ show_menu_header() {
 
 print_menu_screen() {
   show_menu_header
-  print_card "Установка" \
-    "1) Установить Бота" \
-    "2) Установить Кабинет" \
-    "3) Установить Бот + Кабину"
-  print_card "Обслуживание" \
-    "4) Обновить Бота" \
-    "5) Обновить Кабину" \
-    "6) Проверить обновления"
-  print_card "Прочее" \
-    "7) Показать текущее состояние" \
-    "0) Выход"
+  print_card "Меню" \
+    "🤖 Установить Бота" \
+    "🗂 Установить Кабинет" \
+    "🚀 Установить Бот + Кабину" \
+    "🔄 Обновить Бота" \
+    "🧱 Обновить Кабину" \
+    "📡 Проверить обновления" \
+    "📋 Показать текущее состояние" \
+    "✖ Выход"
   hr
 }
 
@@ -209,10 +207,24 @@ run_main_menu() {
   while true; do
     print_menu_screen
     local choice=""
-    if ! read_input choice "Что делаем: "; then
-      ok "Установщик закрыт"
-      break
+
+    if supports_arrow_ui; then
+      choice="$(interactive_select 'Выбери действие' \
+        '🤖 Установить Бота' \
+        '🗂 Установить Кабинет' \
+        '🚀 Установить Бот + Кабину' \
+        '🔄 Обновить Бота' \
+        '🧱 Обновить Кабину' \
+        '📡 Проверить обновления' \
+        '📋 Показать текущее состояние' \
+        '✖ Выход')"
+    else
+      if ! read_input choice "Что делаем: "; then
+        ok "Установщик закрыт"
+        break
+      fi
     fi
+
     case "$choice" in
       1) install_bot_flow; show_finish_screen ;;
       2) install_cabinet_flow; show_finish_screen ;;
@@ -221,7 +233,7 @@ run_main_menu() {
       5) update_cabinet_now ;;
       6) check_updates_now ;;
       7) show_plan ;;
-      0) ok "Установщик закрыт"; break ;;
+      8|0) ok "Установщик закрыт"; break ;;
       *) warn "Не понял пункт меню" ;;
     esac
     printf "\n"

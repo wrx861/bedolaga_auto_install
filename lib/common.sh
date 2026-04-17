@@ -25,8 +25,8 @@ C_CYAN='\033[36m'
 print_banner() {
   cat <<'EOF'
 ╭──────────────────────────────────────────────────────────────────────╮
-│                    ⚡ УСТАНОВЩИК BEDOLAGA                           │
-│                Бот • Кабина • Полная сборка                         │
+│                    ⚡ BEDOLAGA INSTALLER                            │
+│                 🤖 Бот • 🗂 Кабинет • 🌐 Remnawave                  │
 ╰──────────────────────────────────────────────────────────────────────╯
 EOF
 }
@@ -68,6 +68,87 @@ menu_item() {
   printf "     %b%s%b\n" "$C_DIM" "$desc" "$C_RESET"
 }
 
+supports_arrow_ui() {
+  [[ -t 0 && -t 2 ]]
+}
+
+read_keypress() {
+  local __var_name="$1"
+  local __key=""
+  local __next=""
+  local __final=""
+
+  IFS= read -rsn1 __key || return 1
+
+  if [[ "$__key" == $'\e' ]]; then
+    if IFS= read -rsn1 -t 0.05 __next; then
+      __key+="$__next"
+      if [[ "$__next" == "[" ]]; then
+        if IFS= read -rsn1 -t 0.05 __final; then
+          __key+="$__final"
+        fi
+      fi
+    fi
+  fi
+
+  printf -v "$__var_name" '%s' "$__key"
+}
+
+interactive_select() {
+  local title="$1"
+  shift
+  local options=("$@")
+  local selected=0
+  local key line i
+  local total_lines=$(( ${#options[@]} + 3 ))
+  local first_render=1
+
+  while true; do
+    if (( first_render )); then
+      first_render=0
+    else
+      printf '\033[%dA' "$total_lines" >&2
+    fi
+
+    printf '\033[J' >&2
+    printf "%b%s%b\n" "$C_BOLD$C_CYAN" "$title" "$C_RESET" >&2
+    printf "%b↑ ↓%b — выбрать • %bEnter%b — подтвердить\n\n" "$C_DIM" "$C_RESET" "$C_BOLD" "$C_RESET" >&2
+
+    for ((i=0; i<${#options[@]}; i++)); do
+      line="${options[$i]}"
+      if (( i == selected )); then
+        printf "%b  ❯ %s%b\n" "$C_BOLD$C_CYAN" "$line" "$C_RESET" >&2
+      else
+        printf "%b    %s%b\n" "$C_DIM" "$line" "$C_RESET" >&2
+      fi
+    done
+
+    if ! read_keypress key; then
+      return 1
+    fi
+
+    case "$key" in
+      $'\e[A'|k)
+        ((selected--))
+        if (( selected < 0 )); then
+          selected=$((${#options[@]} - 1))
+        fi
+        ;;
+      $'\e[B'|j)
+        ((selected++))
+        if (( selected >= ${#options[@]} )); then
+          selected=0
+        fi
+        ;;
+      ""|$'\n'|$'\r')
+        printf '\033[%dA\033[J' "$total_lines" >&2
+        printf '%s' "$((selected + 1))"
+        return 0
+        ;;
+    esac
+  done
+}
+
 choose_install_dir() {
   local message="$1"
   local recommended="$2"
@@ -75,30 +156,36 @@ choose_install_dir() {
   local custom=""
   local choice
 
-  printf "%s\n" "$message" >&2
-  printf "  1) %s %b(рекомендуется)%b\n" "$recommended" "$C_DIM" "$C_RESET" >&2
-  printf "  2) %s\n" "$root_variant" >&2
-  printf "  3) Указать свой путь\n" >&2
-
-  while true; do
+  if supports_arrow_ui; then
+    choice="$(interactive_select "$message" \
+      "$recommended (рекомендуется)" \
+      "$root_variant" \
+      "Указать свой путь")"
+  else
+    printf "%s\n" "$message" >&2
+    printf "  1) %s %b(рекомендуется)%b\n" "$recommended" "$C_DIM" "$C_RESET" >&2
+    printf "  2) %s\n" "$root_variant" >&2
+    printf "  3) Указать свой путь\n" >&2
     if ! read_input choice "Выбор [1]: "; then
       choice="1"
     fi
-    choice="${choice:-1}"
-    case "$choice" in
-      1) printf '%s' "$recommended"; return 0 ;;
-      2) printf '%s' "$root_variant"; return 0 ;;
-      3)
-        custom="$(prompt 'Введи полный путь')"
-        if [[ -n "$custom" ]]; then
-          printf '%s' "$custom"
-          return 0
-        fi
-        warn "Путь не должен быть пустым" >&2
-        ;;
-      *) warn "Введи 1, 2 или 3" >&2 ;;
-    esac
-  done
+  fi
+
+  choice="${choice:-1}"
+  case "$choice" in
+    1) printf '%s' "$recommended"; return 0 ;;
+    2) printf '%s' "$root_variant"; return 0 ;;
+    3)
+      custom="$(prompt 'Введи полный путь')"
+      if [[ -n "$custom" ]]; then
+        printf '%s' "$custom"
+        return 0
+      fi
+      warn "Путь не должен быть пустым" >&2
+      return 1
+      ;;
+    *) warn "Введи 1, 2 или 3" >&2; return 1 ;;
+  esac
 }
 
 log()    { printf "%bℹ%b  %s\n" "$C_BLUE" "$C_RESET" "$*"; }
@@ -200,23 +287,27 @@ choose_option() {
   local options=("$@")
   local i choice selected
 
-  printf "%s\n" "$message" >&2
-  for ((i=0; i<${#options[@]}; i++)); do
-    printf "  %d) %s\n" "$((i+1))" "${options[$i]}" >&2
-  done
-
-  while true; do
+  if supports_arrow_ui; then
+    choice="$(interactive_select "$message" "${options[@]}")"
+  else
+    printf "%s\n" "$message" >&2
+    for ((i=0; i<${#options[@]}; i++)); do
+      printf "  %d) %s\n" "$((i+1))" "${options[$i]}" >&2
+    done
     if ! read_input choice "Выбор [$default]: "; then
       choice="$default"
     fi
-    choice="${choice:-$default}"
-    if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#options[@]} )); then
-      selected="${options[$((choice-1))]}"
-      printf '%s' "$selected"
-      return 0
-    fi
-    warn "Введи номер варианта: 1-${#options[@]}" >&2
-  done
+  fi
+
+  choice="${choice:-$default}"
+  if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#options[@]} )); then
+    selected="${options[$((choice-1))]}"
+    printf '%s' "$selected"
+    return 0
+  fi
+
+  warn "Введи номер варианта: 1-${#options[@]}" >&2
+  return 1
 }
 
 confirm() {
