@@ -1,6 +1,8 @@
 Target install layout
 =====================
 
+Clean host with dedicated proxy mode
+-----------------------------------
 /opt/remnawave-bedolaga-telegram-bot/
 ├── .git/
 ├── generated/
@@ -13,8 +15,26 @@ Target install layout
 ├── bundles/
 └── INSTALLER_NEXT_STEPS.txt
 
-/opt/bedolaga-proxy/   # only for clean-host dedicated proxy mode; not used when integrating into existing /opt/remnawave proxy
+/opt/bedolaga-proxy/
 ├── generated/
+└── INSTALLER_NEXT_STEPS.txt
+
+Coexist host with existing Remnawave proxy
+------------------------------------------
+/opt/remnawave/
+├── nginx.conf or caddy/Caddyfile
+└── ...
+
+/opt/remnawave-bedolaga-telegram-bot/
+├── .git/
+├── generated/
+├── bundles/
+└── INSTALLER_NEXT_STEPS.txt
+
+/opt/bedolaga-cabinet/
+├── .git/
+├── generated/
+├── bundles/
 └── INSTALLER_NEXT_STEPS.txt
 
 Update model:

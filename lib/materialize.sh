@@ -64,6 +64,8 @@ Cabinet bundle prepared
 =======================
 Source repo: $src_root
 Bundle dir:  $bundle_root
+Proxy mode:  $(proxy_mode_label "${PROXY_MODE:-unset}" "${EXISTING_REMNAWAVE_PROXY_KIND:-}")
+Proxy target: ${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-${PROXY_INSTALL_DIR:-managed-separately}}
 
 Planned command sequence:
 cd "$src_root"

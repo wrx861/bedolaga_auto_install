@@ -10,6 +10,8 @@ run_preflight() {
 
   local failures=0
   local detected_remnawave=""
+  local detected_proxy_kind=""
+  local detected_proxy_config=""
 
   if is_root; then ok "Running as root"; else warn "Not running as root (sudo/root will be needed for real deploy)"; fi
 
@@ -18,8 +20,12 @@ run_preflight() {
     detected_remnawave="$(detect_existing_remnawave_root 2>/dev/null || true)"
   fi
   if [[ -n "$detected_remnawave" ]]; then
+    detected_proxy_kind="${EXISTING_REMNAWAVE_PROXY_KIND:-$(detect_existing_remnawave_proxy_kind "$detected_remnawave" 2>/dev/null || true)}"
+    detected_proxy_config="${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-$(detect_existing_remnawave_proxy_config_path "$detected_remnawave" "$detected_proxy_kind" 2>/dev/null || true)}"
     warn "Existing Remnawave detected at $detected_remnawave"
     warn "Treat this host as coexist/preserve-existing by default"
+    [[ -n "$detected_proxy_kind" ]] && ok "panel proxy kind: $detected_proxy_kind"
+    [[ -n "$detected_proxy_config" ]] && ok "panel proxy config: $detected_proxy_config"
   else
     ok "No existing /opt/remnawave* installation detected"
   fi

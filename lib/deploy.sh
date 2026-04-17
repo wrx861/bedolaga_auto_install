@@ -66,8 +66,10 @@ write_next_steps() {
   local cabinet_root="${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}"
   local proxy_root="${PROXY_INSTALL_DIR:-managed-by-remnawave}"
   local proxy_display="${PROXY_INSTALL_DIR:-managed-by-remnawave}"
+  local proxy_steps="4. Materialize proxy config under ${proxy_root}"
   if [[ "${PROXY_MODE:-}" == "integrate-remnawave" && -n "${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-}" ]]; then
     proxy_display="${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH}"
+    proxy_steps="4. Materialize integration config for existing Remnawave proxy: ${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH}"
   fi
 
   cat > "$bot_root/INSTALLER_NEXT_STEPS.txt" <<EOF
@@ -94,7 +96,7 @@ Planned next implementation steps:
 1. Clone/pull upstream bot repo into: $bot_root
 2. Clone/pull upstream cabinet repo into: $cabinet_root
 3. Materialize docker compose files/overrides
-4. Materialize proxy config under ${proxy_root}
+${proxy_steps}
 5. Run compose up -d
 6. Run health verification
 
