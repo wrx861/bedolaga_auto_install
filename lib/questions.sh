@@ -30,10 +30,12 @@ collect_common_answers() {
       ;;
   esac
 
-  PROXY_INSTALL_DIR="/opt/bedolaga-proxy"
+  PROXY_INSTALL_DIR=""
   TZ_VALUE="Europe/Moscow"
 
   local detected_remnawave=""
+  local detected_proxy_kind=""
+  local detected_proxy_config_path=""
   detected_remnawave="$(detect_existing_remnawave_root 2>/dev/null || true)"
 
   case "$INSTALL_MODE" in
@@ -78,17 +80,22 @@ collect_common_answers() {
   if [[ -n "$detected_remnawave" ]]; then
     HOST_MODE="coexist"
     NETWORK_POLICY="preserve-existing"
+    detected_proxy_kind="$(detect_existing_remnawave_proxy_kind "$detected_remnawave" 2>/dev/null || true)"
+    detected_proxy_config_path="$(detect_existing_remnawave_proxy_config_path "$detected_remnawave" "$detected_proxy_kind" 2>/dev/null || true)"
     warn "Нашёл существующий Remnawave: $detected_remnawave"
   else
     HOST_MODE="clean"
     NETWORK_POLICY="bootstrap-safe"
+    if [[ "$PROXY_MODE" != "none" ]]; then
+      PROXY_INSTALL_DIR="/opt/bedolaga-proxy"
+    fi
   fi
 
   print_card "Что будет использоваться" \
     "Режим: $INSTALL_MODE" \
     "Бот: $BOT_INSTALL_DIR" \
     "Кабина: $CABINET_INSTALL_DIR" \
-    "Прокси: $(proxy_mode_label "$PROXY_MODE")" \
+    "Прокси: $(proxy_mode_label "$PROXY_MODE" "$detected_proxy_kind")" \
     "Сервер: $HOST_MODE"
 
   write_state_var INSTALL_MODE "$INSTALL_MODE"
@@ -103,6 +110,8 @@ collect_common_answers() {
   write_state_var HOST_MODE "$HOST_MODE"
   write_state_var NETWORK_POLICY "$NETWORK_POLICY"
   write_state_var EXISTING_REMNAWAVE_DIR "$detected_remnawave"
+  write_state_var EXISTING_REMNAWAVE_PROXY_KIND "$detected_proxy_kind"
+  write_state_var EXISTING_REMNAWAVE_PROXY_CONFIG_PATH "$detected_proxy_config_path"
 }
 
 detect_local_remnawave_api_url() {

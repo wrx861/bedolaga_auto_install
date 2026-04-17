@@ -345,12 +345,20 @@ slugify() {
 }
 
 proxy_mode_label() {
-  case "${1:-}" in
+  local mode="${1:-}"
+  local kind="${2:-}"
+  case "$mode" in
     caddy) printf '%s' 'отдельный Caddy' ;;
     nginx) printf '%s' 'отдельный Nginx' ;;
-    integrate-remnawave) printf '%s' 'встрою в Remnawave' ;;
+    integrate-remnawave)
+      if [[ -n "$kind" && "$kind" != "unknown" ]]; then
+        printf 'встрою в Remnawave (%s)' "$kind"
+      else
+        printf '%s' 'встрою в Remnawave'
+      fi
+      ;;
     none) printf '%s' 'не нужен' ;;
-    *) printf '%s' "${1:-не выбран}" ;;
+    *) printf '%s' "${mode:-не выбран}" ;;
   esac
 }
 
@@ -368,6 +376,38 @@ detect_existing_remnawave_root() {
     }
   done
   return 1
+}
+
+detect_existing_remnawave_proxy_kind() {
+  local root="${1:-}"
+  [[ -n "$root" ]] || root="$(detect_existing_remnawave_root 2>/dev/null || true)"
+  [[ -n "$root" ]] || return 1
+
+  if [[ -f "$root/caddy/Caddyfile" && -f "$root/caddy/docker-compose.yml" ]]; then
+    printf '%s\n' 'caddy'
+    return 0
+  fi
+
+  if [[ -f "$root/nginx.conf" ]]; then
+    printf '%s\n' 'nginx'
+    return 0
+  fi
+
+  printf '%s\n' 'unknown'
+}
+
+detect_existing_remnawave_proxy_config_path() {
+  local root="${1:-}"
+  local kind="${2:-}"
+  [[ -n "$root" ]] || root="$(detect_existing_remnawave_root 2>/dev/null || true)"
+  [[ -n "$kind" ]] || kind="$(detect_existing_remnawave_proxy_kind "$root" 2>/dev/null || true)"
+  [[ -n "$root" ]] || return 1
+
+  case "$kind" in
+    caddy) printf '%s\n' "$root/caddy/Caddyfile" ;;
+    nginx) printf '%s\n' "$root/nginx.conf" ;;
+    *) return 1 ;;
+  esac
 }
 
 render_template() {

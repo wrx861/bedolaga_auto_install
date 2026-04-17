@@ -1,0 +1,11 @@
+https://${CABINET_DOMAIN} {
+    encode gzip zstd
+
+    handle /api/* {
+        reverse_proxy 127.0.0.1:${BOT_LOCAL_PORT}
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:${CABINET_LOCAL_PORT}
+    }
+}

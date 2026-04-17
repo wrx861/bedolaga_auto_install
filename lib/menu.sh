@@ -45,7 +45,8 @@ show_plan() {
   local bot_state="не найден"
   local cabinet_state="не найден"
   local remnawave_state="не найден"
-  local proxy_state="$(proxy_mode_label "${PROXY_MODE:-не найден}")"
+  local proxy_kind="${EXISTING_REMNAWAVE_PROXY_KIND:-}"
+  local proxy_state="$(proxy_mode_label "${PROXY_MODE:-не найден}" "$proxy_kind")"
 
   bot_root="$(resolve_bot_root 2>/dev/null || true)"
   cabinet_root="$(resolve_cabinet_root 2>/dev/null || true)"

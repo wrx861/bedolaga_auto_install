@@ -28,6 +28,8 @@ remnawaveSetupMode=${REMNAWAVE_SETUP_MODE:-now}
 cabinetDir=${CABINET_INSTALL_DIR:-}
 proxyDir=${PROXY_INSTALL_DIR:-}
 proxyIntegrationTarget=${EXISTING_REMNAWAVE_DIR:-}
+proxyIntegrationKind=${EXISTING_REMNAWAVE_PROXY_KIND:-}
+proxyIntegrationConfig=${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-}
 EOF
   fi
 
@@ -48,6 +50,8 @@ remnawaveSetupMode=${REMNAWAVE_SETUP_MODE:-now}
 botDir=${BOT_INSTALL_DIR:-}
 proxyDir=${PROXY_INSTALL_DIR:-}
 proxyIntegrationTarget=${EXISTING_REMNAWAVE_DIR:-}
+proxyIntegrationKind=${EXISTING_REMNAWAVE_PROXY_KIND:-}
+proxyIntegrationConfig=${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-}
 EOF
   fi
 
@@ -68,6 +72,8 @@ remnawaveSetupMode=${REMNAWAVE_SETUP_MODE:-now}
 botDir=${BOT_INSTALL_DIR:-}
 cabinetDir=${CABINET_INSTALL_DIR:-}
 proxyIntegrationTarget=${EXISTING_REMNAWAVE_DIR:-}
+proxyIntegrationKind=${EXISTING_REMNAWAVE_PROXY_KIND:-}
+proxyIntegrationConfig=${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-}
 EOF
   fi
 

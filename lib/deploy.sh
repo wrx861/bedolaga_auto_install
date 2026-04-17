@@ -52,6 +52,11 @@ copy_rendered_artifacts() {
     fi
   fi
 
+  if [[ -f "$render_root/proxy.integration.conf" && -n "${CABINET_INSTALL_DIR:-}" ]]; then
+    mkdir -p "${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}/generated"
+    cp "$render_root/proxy.integration.conf" "${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}/generated/proxy.integration.conf"
+  fi
+
   ok "Artifacts copied into generated dirs"
 }
 
@@ -59,7 +64,7 @@ write_next_steps() {
   load_state
   local bot_root="${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}"
   local cabinet_root="${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}"
-  local proxy_root="${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}"
+  local proxy_root="${PROXY_INSTALL_DIR:-managed-by-remnawave}"
 
   cat > "$bot_root/INSTALLER_NEXT_STEPS.txt" <<EOF
 Bedolaga installer next steps
@@ -85,7 +90,7 @@ Planned next implementation steps:
 1. Clone/pull upstream bot repo into: $bot_root
 2. Clone/pull upstream cabinet repo into: $cabinet_root
 3. Materialize docker compose files/overrides
-4. Materialize Caddy/Nginx config under $proxy_root
+4. Materialize proxy config under ${proxy_root}
 5. Run compose up -d
 6. Run health verification
 

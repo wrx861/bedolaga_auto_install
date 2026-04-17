@@ -13,7 +13,7 @@ Target install layout
 ├── bundles/
 └── INSTALLER_NEXT_STEPS.txt
 
-/opt/bedolaga-proxy/
+/opt/bedolaga-proxy/   # only for clean-host dedicated proxy mode; not used when integrating into existing /opt/remnawave proxy
 ├── generated/
 └── INSTALLER_NEXT_STEPS.txt
 

@@ -13,6 +13,7 @@ run_verify_skeleton() {
 
   if [[ "${PROXY_MODE:-}" == "integrate-remnawave" ]]; then
     ok "proxy integration mode selected"
+    [[ -n "${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-}" ]] && ok "panel proxy config detected: ${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH}" || warn "panel proxy config not detected"
   elif [[ "${PROXY_MODE:-}" == "none" ]]; then
     ok "proxy not required"
   else

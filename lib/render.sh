@@ -36,12 +36,34 @@ render_scaffold() {
       ;;
     cabinet-only)
       render_template "$INSTALLER_TEMPLATES_DIR/env.cabinet.tmpl" "$target_root/.env"
-      render_template "$INSTALLER_TEMPLATES_DIR/Caddyfile.cabinet.tmpl" "$target_root/Caddyfile"
+      if [[ "${PROXY_MODE:-}" == "integrate-remnawave" ]]; then
+        case "${EXISTING_REMNAWAVE_PROXY_KIND:-unknown}" in
+          nginx)
+            render_template "$INSTALLER_TEMPLATES_DIR/nginx.integrate-remnawave.conf.tmpl" "$target_root/proxy.integration.conf"
+            ;;
+          *)
+            render_template "$INSTALLER_TEMPLATES_DIR/Caddyfile.integrate-remnawave.tmpl" "$target_root/proxy.integration.conf"
+            ;;
+        esac
+      else
+        render_template "$INSTALLER_TEMPLATES_DIR/Caddyfile.cabinet.tmpl" "$target_root/Caddyfile"
+      fi
       ;;
     bot+cabinet)
       render_template "$INSTALLER_TEMPLATES_DIR/env.bot.tmpl" "$target_root/.env.bot"
       render_template "$INSTALLER_TEMPLATES_DIR/env.cabinet.tmpl" "$target_root/.env.cabinet"
-      render_template "$INSTALLER_TEMPLATES_DIR/Caddyfile.combined.tmpl" "$target_root/Caddyfile"
+      if [[ "${PROXY_MODE:-}" == "integrate-remnawave" ]]; then
+        case "${EXISTING_REMNAWAVE_PROXY_KIND:-unknown}" in
+          nginx)
+            render_template "$INSTALLER_TEMPLATES_DIR/nginx.integrate-remnawave.conf.tmpl" "$target_root/proxy.integration.conf"
+            ;;
+          *)
+            render_template "$INSTALLER_TEMPLATES_DIR/Caddyfile.integrate-remnawave.tmpl" "$target_root/proxy.integration.conf"
+            ;;
+        esac
+      else
+        render_template "$INSTALLER_TEMPLATES_DIR/Caddyfile.combined.tmpl" "$target_root/Caddyfile"
+      fi
       ;;
     *)
       error "Unknown INSTALL_MODE: ${INSTALL_MODE:-unset}"
