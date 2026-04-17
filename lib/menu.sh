@@ -47,6 +47,7 @@ show_plan() {
   local remnawave_state="не найден"
   local proxy_kind="${EXISTING_REMNAWAVE_PROXY_KIND:-}"
   local proxy_state="$(proxy_mode_label "${PROXY_MODE:-не найден}" "$proxy_kind")"
+  local proxy_target="${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-}"
 
   bot_root="$(resolve_bot_root 2>/dev/null || true)"
   cabinet_root="$(resolve_cabinet_root 2>/dev/null || true)"
@@ -63,7 +64,7 @@ show_plan() {
     "Режим      $(mode_label "${INSTALL_MODE:-}")" \
     "Бот        ${bot_state}" \
     "Кабинет    ${cabinet_state}" \
-    "Прокси     ${proxy_state}" \
+    "Прокси     ${proxy_state}${proxy_target:+ → ${proxy_target}}" \
     "Remnawave  ${remnawave_state}"
 }
 

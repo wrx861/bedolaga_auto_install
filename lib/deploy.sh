@@ -65,6 +65,10 @@ write_next_steps() {
   local bot_root="${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}"
   local cabinet_root="${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}"
   local proxy_root="${PROXY_INSTALL_DIR:-managed-by-remnawave}"
+  local proxy_display="${PROXY_INSTALL_DIR:-managed-by-remnawave}"
+  if [[ "${PROXY_MODE:-}" == "integrate-remnawave" && -n "${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH:-}" ]]; then
+    proxy_display="${EXISTING_REMNAWAVE_PROXY_CONFIG_PATH}"
+  fi
 
   cat > "$bot_root/INSTALLER_NEXT_STEPS.txt" <<EOF
 Bedolaga installer next steps
@@ -78,8 +82,8 @@ Bot local port: ${BOT_LOCAL_PORT:-8080}
 Cabinet local port: ${CABINET_LOCAL_PORT:-3020}
 Bot dir: ${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot}
 Cabinet dir: ${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}
-Proxy dir: ${PROXY_INSTALL_DIR:-/opt/bedolaga-proxy}
-Proxy mode: $(proxy_mode_label "${PROXY_MODE:-unset}")
+Proxy target: ${proxy_display}
+Proxy mode: $(proxy_mode_label "${PROXY_MODE:-unset}" "${EXISTING_REMNAWAVE_PROXY_KIND:-}")
 
 Update model (target):
 - bot update: cd ${BOT_INSTALL_DIR:-/opt/remnawave-bedolaga-telegram-bot} && git pull
@@ -100,7 +104,9 @@ Firewall/network safety policy:
 EOF
 
   cp "$bot_root/INSTALLER_NEXT_STEPS.txt" "$cabinet_root/INSTALLER_NEXT_STEPS.txt" 2>/dev/null || true
-  cp "$bot_root/INSTALLER_NEXT_STEPS.txt" "$proxy_root/INSTALLER_NEXT_STEPS.txt" 2>/dev/null || true
+  if [[ "${PROXY_MODE:-}" != "integrate-remnawave" && "${PROXY_MODE:-}" != "none" ]]; then
+    cp "$bot_root/INSTALLER_NEXT_STEPS.txt" "$proxy_root/INSTALLER_NEXT_STEPS.txt" 2>/dev/null || true
+  fi
   ok "Wrote NEXT_STEPS file"
 }
 
