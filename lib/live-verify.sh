@@ -61,12 +61,20 @@ verify_bot_live() {
 verify_cabinet_live() {
   load_state
   section "Live verify: cabinet"
-  local port
-  port=$(grep -E '^CABINET_PORT=' "${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}/.env" 2>/dev/null | cut -d= -f2 || echo 3020)
+  local cabinet_root="${CABINET_INSTALL_DIR:-/opt/bedolaga-cabinet}"
+  local port="${CABINET_LOCAL_PORT:-3020}"
   local ok_count=0
   local attempt
   local max_attempts="${LIVE_VERIFY_ATTEMPTS:-12}"
   local sleep_seconds="${LIVE_VERIFY_SLEEP_SECONDS:-5}"
+
+  if [[ -f "$cabinet_root/bundles/.env" ]]; then
+    port=$(grep -E '^CABINET_LOCAL_PORT=' "$cabinet_root/bundles/.env" 2>/dev/null | cut -d= -f2- || true)
+    port="${port:-${CABINET_LOCAL_PORT:-3020}}"
+  elif [[ -f "$cabinet_root/.env" ]]; then
+    port=$(grep -E '^CABINET_LOCAL_PORT=' "$cabinet_root/.env" 2>/dev/null | cut -d= -f2- || true)
+    port="${port:-${CABINET_LOCAL_PORT:-3020}}"
+  fi
 
   for ((attempt=1; attempt<=max_attempts; attempt++)); do
     if curl -fsS "http://127.0.0.1:${port}/" >/dev/null 2>&1; then
